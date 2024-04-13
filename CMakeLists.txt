@@ -1,5 +1,6 @@
 add_library(BBDownUtility STATIC
   Logger.cpp
+  Json.cpp
 )
 
 target_include_directories(BBDownUtility PUBLIC
@@ -7,5 +8,6 @@ target_include_directories(BBDownUtility PUBLIC
 )
 
 target_link_libraries(BBDownUtility
+  nlohmann_json
   spdlog
 )
