@@ -42,6 +42,12 @@ JsonPtrTy parseJsonString(const std::string &json_str) {
   }
 }
 
+bool getOptionalField(const nlohmann::json &json_obj,
+                      const std::string &field_l, const std::string &field_r,
+                      nlohmann::json &result) {
+  return getOptionalField(json_obj, field_l, json_obj, field_r, result);
+}
+
 bool getOptionalField(const nlohmann::json &json_l, const std::string &field_l,
                       const nlohmann::json &json_r, const std::string &field_r,
                       nlohmann::json &result) {
