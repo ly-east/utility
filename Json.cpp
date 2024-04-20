@@ -57,7 +57,7 @@ bool getOptionalField(const nlohmann::json &json_l, const std::string &field_l,
 
   auto optionalFieldJson = [](const nlohmann::json &j,
                               const std::string &f) -> nlohmann::json {
-    if (!f.empty() && !j.is_null())
+    if (!f.empty() && !j.is_null() && j.contains(f))
       return j[f];
     return nlohmann::json();
   };
