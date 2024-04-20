@@ -1,6 +1,7 @@
 add_library(BBDownUtility STATIC
   Logger.cpp
   Json.cpp
+  Random.cpp
 )
 
 target_include_directories(BBDownUtility PUBLIC
