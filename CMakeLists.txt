@@ -1,4 +1,5 @@
 add_library(BBDownUtility STATIC
+  Filesystem.cpp
   Logger.cpp
   Json.cpp
   Random.cpp
