@@ -1,4 +1,5 @@
 #include "Utility/Filesystem.h"
+#include "Utility/Launch.h"
 #include "spdlog/spdlog.h"
 #include <filesystem>
 
@@ -20,11 +21,7 @@ std::string getExecutableFilePath(const std::string &name) {
   if (std::filesystem::exists(p) && std::filesystem::is_regular_file(p))
     return p.string();
 
-  // TODO: use WHERE command to find program in environment variable
-  //  cmd /c "where ffmpeg"
-  std::string path;
-
-  return path;
+  return utility::locateProgram(name);
 }
 
 bool removePath(const std::string &path) {
