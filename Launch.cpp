@@ -1,13 +1,56 @@
 #include "Utility/Launch.h"
 #include "spdlog/spdlog.h"
+#include <cassert>
+#include <exception>
+#include <filesystem>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <windows.h>
 
 namespace utility {
-std::string locateProgram(const std::string &name) { return std::string(); }
+std::string locateProgram(const std::string &name) {
+  std::string path;
 
-int waitForExitCode(const std::string &path, char *arg) { return 0; }
+  const unsigned buf_size = std::max<unsigned>(32, name.size() + 16);
+  std::unique_ptr<char[]> buf;
+
+  try {
+    buf = std::make_unique<char[]>(buf_size);
+  } catch (const std::exception &e) {
+    spdlog::error("make_unique failed: {}", e.what());
+    return path;
+  }
+
+  char *const buf_ptr = buf.get();
+  unsigned sysdir_size = GetSystemDirectoryA(buf_ptr, buf_size);
+  if (!sysdir_size) {
+    spdlog::error("GetSystemDirectoryA failed ({})", GetLastError());
+    return path;
+  }
+
+  path.assign(buf_ptr, sysdir_size);
+  std::filesystem::path p{path};
+  p.append("cmd.exe");
+
+  memset(buf_ptr, 0, buf_size);
+  snprintf(buf_ptr, buf_size, "/c \"where %s\"", name.c_str());
+  path.clear();
+
+  int exit_code =
+      launchHiddenProgram(p.string(), buf_ptr, [&path](std::string &&output) {
+        path.append(output);
+      });
+
+  if (exit_code)
+    spdlog::error("cmd exits with code {}", exit_code);
+
+  return path;
+}
+
+int waitForExitCode(const std::string &path, char *arg) {
+  return launchHiddenProgram(path, arg, [](std::string &&) {});
+}
 
 int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
   HANDLE hChildStd_OUT_Rd = NULL;
