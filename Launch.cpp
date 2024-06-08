@@ -57,16 +57,16 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
 
   WaitForSingleObject(pi.hProcess, INFINITE);
 
-  DWORD exitCode = 0;
-  if (!GetExitCodeProcess(pi.hProcess, &exitCode))
+  DWORD exit_code = 0;
+  if (!GetExitCodeProcess(pi.hProcess, &exit_code))
     spdlog::error("GetExitCodeProcess failed ({})", GetLastError());
   else
-    spdlog::debug("Process exited with code: {}", exitCode);
+    spdlog::debug("Process exited with code: {}", exit_code);
 
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
   CloseHandle(hChildStd_OUT_Rd);
 
-  return 0;
+  return exit_code;
 }
 } // namespace utility
