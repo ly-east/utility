@@ -13,13 +13,10 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
   HANDLE hChildStd_OUT_Rd = NULL;
   HANDLE hChildStd_OUT_Wr = NULL;
 
-  SECURITY_ATTRIBUTES saAttr;
-  saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
-  saAttr.bInheritHandle = TRUE;
-  saAttr.lpSecurityDescriptor = NULL;
+  SECURITY_ATTRIBUTES attr{sizeof(SECURITY_ATTRIBUTES), NULL, TRUE};
 
   // create the annonymous pipe
-  if (!CreatePipe(&hChildStd_OUT_Rd, &hChildStd_OUT_Wr, &saAttr, 0)) {
+  if (!CreatePipe(&hChildStd_OUT_Rd, &hChildStd_OUT_Wr, &attr, 0)) {
     spdlog::error("CreatePipe failed ({})", GetLastError());
     return 1;
   }
@@ -27,21 +24,13 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
   // let reading handle cannot be inherited
   SetHandleInformation(hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0);
 
-  STARTUPINFOA si;
-  PROCESS_INFORMATION pi;
+  STARTUPINFOA si{sizeof(STARTUPINFO)};
+  PROCESS_INFORMATION pi{};
 
-  ZeroMemory(&si, sizeof(STARTUPINFO));
-  si.cb = sizeof(STARTUPINFO);
   si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
   si.hStdError = hChildStd_OUT_Wr; // stderr is redirected also
   si.hStdOutput = hChildStd_OUT_Wr;
   si.wShowWindow = SW_HIDE;
-
-  ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
-
-  // const char *cmd = "c:/windows/system32/cmd.exe";
-  // char cmdLine[64];
-  // sprintf_s(cmdLine, sizeof(cmdLine), "/c \"where %s\"", "python");
 
   // create subprocess
   if (!CreateProcessA(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL, &si,
@@ -54,16 +43,16 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
 
   CloseHandle(hChildStd_OUT_Wr);
 
-  char buffer[64];
-  DWORD bytesRead = 0;
-  std::string output;
+  char buffer[32];
+  DWORD byte_read = 0;
 
   // read from subprocess until pipe is closed
-  while (ReadFile(hChildStd_OUT_Rd, buffer, sizeof(buffer), &bytesRead, NULL) &&
-         bytesRead > 0) {
-    output.append(buffer, bytesRead);
-    spdlog::debug(output);
-    output.clear();
+  while (ReadFile(hChildStd_OUT_Rd, buffer, sizeof buffer, &byte_read, NULL) &&
+         byte_read > 0) {
+    if (buffer[byte_read - 1] == '\n' && byte_read >= 2)
+      byte_read -= 2; // remove tailing \r\n
+
+    func(std::string(buffer, byte_read));
   }
 
   WaitForSingleObject(pi.hProcess, INFINITE);
