@@ -86,6 +86,8 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
     return 1;
   }
 
+  spdlog::debug("process {} launched", pi.dwProcessId);
+
   CloseHandle(hChildStd_OUT_Wr);
 
   char buffer[32];
