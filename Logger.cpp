@@ -4,6 +4,11 @@
 
 namespace utility {
 bool setFileLogger(const std::string &filename) {
+  static bool has_settled = false;
+
+  if (has_settled)
+    return true;
+
   try {
     auto logger = spdlog::basic_logger_mt("basic_logger", filename);
 
@@ -12,6 +17,7 @@ bool setFileLogger(const std::string &filename) {
     logger->set_level(spdlog::level::debug);
 
     spdlog::set_default_logger(logger);
+    has_settled = true;
   } catch (const spdlog::spdlog_ex &ex) {
     spdlog::error("Log init failed: {}", ex.what());
     return false;
