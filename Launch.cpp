@@ -1,6 +1,7 @@
 #include "Utility/Launch.h"
 #include "spdlog/spdlog.h"
 #include <cassert>
+#include <cstdlib>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -22,23 +23,24 @@ std::string locateProgram(const std::string &name) {
     return path;
   }
 
-  char *const buf_ptr = buf.get();
-  unsigned sysdir_size = GetSystemDirectoryA(buf_ptr, buf_size);
-  if (!sysdir_size) {
-    spdlog::error("GetSystemDirectoryA failed ({})", GetLastError());
+  // locate cmd
+
+  char cmd_path[32]{};
+  size_t env_size = 0;
+  auto error = getenv_s(&env_size, cmd_path, "ComSpec");
+  if (error) {
+    spdlog::error("getenv_s failed: {}", error);
     return path;
   }
 
-  path.assign(buf_ptr, sysdir_size);
-  std::filesystem::path p{path};
-  p.append("cmd.exe");
+  // command line
 
+  char *const buf_ptr = buf.get();
   memset(buf_ptr, 0, buf_size);
   snprintf(buf_ptr, buf_size, "/c \"where %s\"", name.c_str());
-  path.clear();
 
   int exit_code =
-      launchHiddenProgram(p.string(), buf_ptr, [&path](std::string &&output) {
+      launchHiddenProgram(cmd_path, buf_ptr, [&path](std::string &&output) {
         path.append(output);
       });
 
