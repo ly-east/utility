@@ -44,8 +44,10 @@ std::string locateProgram(const std::string &name) {
         path.append(output);
       });
 
-  if (exit_code)
+  if (exit_code) {
     spdlog::error("cmd exits with code {}", exit_code);
+    path.clear();
+  }
 
   return path;
 }
