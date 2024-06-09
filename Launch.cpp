@@ -92,16 +92,19 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
 
   CloseHandle(hChildStd_OUT_Wr);
 
-  char buffer[32];
+  size_t buf_size = 64;
+  std::unique_ptr<char[]> buf = std::make_unique<char[]>(buf_size);
+  char *const buf_ptr = buf.get();
   DWORD byte_read = 0;
 
   // read from subprocess until pipe is closed
-  while (ReadFile(hChildStd_OUT_Rd, buffer, sizeof buffer, &byte_read, NULL) &&
+  while (ReadFile(hChildStd_OUT_Rd, buf_ptr, buf_size, &byte_read, NULL) &&
          byte_read > 0) {
-    if (buffer[byte_read - 1] == '\n' && byte_read >= 2)
+    if (buf_ptr[byte_read - 1] == '\n' && byte_read >= 2)
       byte_read -= 2; // remove tailing \r\n
 
-    func(std::string(buffer, byte_read));
+    if (byte_read)
+      func(std::string(buf_ptr, byte_read));
   }
 
   WaitForSingleObject(pi.hProcess, INFINITE);
