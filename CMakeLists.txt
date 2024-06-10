@@ -5,6 +5,7 @@ add_library(BBDownUtility STATIC
   Network.cpp
   Json.cpp
   Random.cpp
+  String.cpp
 )
 
 target_include_directories(BBDownUtility PUBLIC
