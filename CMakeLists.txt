@@ -1,4 +1,5 @@
 add_library(BBDownUtility STATIC
+  AriaRpc.cpp
   Filesystem.cpp
   Launch.cpp
   Logger.cpp
