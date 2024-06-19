@@ -1,3 +1,5 @@
+add_subdirectory(Crypto)
+
 add_library(BBDownUtility STATIC
   AriaRpc.cpp
   Filesystem.cpp
