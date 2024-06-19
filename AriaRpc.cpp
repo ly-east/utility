@@ -21,16 +21,23 @@ const char *getMethodString(Method method) {
 namespace utility {
 namespace aria {
 
-bool ariaRpc(Method method) {
+bool ariaRpc(Method method, const std::string &param, const RpcArgTy &option) {
 
   using nlohmann::json;
 
-  json j = {
-      {"jsonrpc", "2.0"},
-      {"id", "qwer"},
-      {"method", getMethodString(method)},
-      {"params",
-       {{"https://baidu.com"}, {{"dir", "D:\\download"}, {"out", "a.exe"}}}}};
+  json j = {{"jsonrpc", "2.0"},
+            {"id", "qwer"},
+            {"method", getMethodString(method)},
+            {"params", {{param}}}};
+
+  if (option.size()) {
+    json opt;
+
+    for (const auto &pair : option)
+      opt[pair.first] = pair.second;
+
+    j["params"].emplace_back(std::move(opt));
+  }
 
   spdlog::debug("\n{}", j.dump());
 
