@@ -1,21 +1,75 @@
 #include "Utility/Crypto/Hash.h"
-#include "openssl/evp.h"
-#include "openssl/md5.h"
+#include "Utility/String/Format.h"
 #include "spdlog/spdlog.h"
-#include <iomanip>
-#include <sstream>
+
+#define USE_MD5_LEGACY 0
+
+#if USE_MD5_LEGACY
+#include "openssl/md5.h"
+#else
+#include "openssl/evp.h"
+#endif // USE_MD5_LEGACY
+
+namespace {
+#if USE_MD5_LEGACY
+static std::string getMD5Legacy(const std::string &str) {
+  unsigned char hash[MD5_DIGEST_LENGTH];
+  MD5((unsigned char *)str.c_str(), str.size(), hash);
+
+  return utility::string::binToHex(hash, MD5_DIGEST_LENGTH);
+}
+#endif // USE_MD5_LEGACY
+
+static std::string getMD5Modern(const std::string &str) {
+  unsigned char hash[EVP_MAX_MD_SIZE];
+  unsigned int hash_len = 0;
+
+  EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+  if (!ctx) {
+    spdlog::error("getMD5Modern: EVP_MD_CTX_new failed");
+    return "";
+  }
+
+  bool is_succeeded = false;
+  do {
+    if (!EVP_DigestInit_ex(ctx, EVP_md5(), nullptr)) {
+      spdlog::error("EVP_DigestInit_ex failed");
+      break;
+    }
+
+    if (!EVP_DigestUpdate(ctx, str.data(), str.size())) {
+      spdlog::error("EVP_DigestUpdate failed");
+      break;
+    }
+
+    if (!EVP_DigestFinal_ex(ctx, hash, &hash_len)) {
+      spdlog::error("EVP_DigestFinal_ex failed");
+      break;
+    }
+
+    is_succeeded = true;
+  } while (false);
+
+  EVP_MD_CTX_free(ctx);
+
+  return is_succeeded ? utility::string::binToHex(hash, hash_len)
+                      : std::string();
+}
+} // namespace
 
 namespace utility {
 namespace crypto {
 std::string getMD5(const std::string &str) {
-  unsigned char hash[MD5_DIGEST_LENGTH];
-  MD5((unsigned char *)str.c_str(), str.size(), hash);
+  if (str.empty()) {
+    spdlog::error("getMD5: empty string?");
+    return std::string();
+  }
 
-  std::stringstream ss;
-  for (int i = 0; i < MD5_DIGEST_LENGTH; ++i)
-    ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
-
-  return ss.str();
+#if USE_MD5_LEGACY
+  return getMD5Legacy(str);
+#else
+  return getMD5Modern(str);
+#endif // USE_MD5_LEGACY
 }
 } // namespace crypto
 } // namespace utility

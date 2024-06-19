@@ -8,6 +8,7 @@ target_include_directories(BBDownUtilityCrypto PUBLIC
 )
 
 target_link_libraries(BBDownUtilityCrypto
+  BBDownUtilityString
   ${OpenSSL_CRYPTO_LIBRARIES}
   spdlog
 )
