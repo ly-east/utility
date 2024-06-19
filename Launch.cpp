@@ -1,5 +1,5 @@
 #include "Utility/Launch.h"
-#include "Utility/String.h"
+#include "Utility/String/Trim.h"
 #include "spdlog/spdlog.h"
 #include <cassert>
 #include <cstdlib>
@@ -101,7 +101,7 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
   // read from subprocess until pipe is closed
   while (ReadFile(hChildStd_OUT_Rd, buf_ptr, buf_size, &byte_read, NULL) &&
          byte_read > 0) {
-    auto output{utility::trim(std::string(buf_ptr, byte_read))};
+    auto output{utility::string::trim(std::string(buf_ptr, byte_read))};
 
     if (output.empty())
       continue;

@@ -1,4 +1,5 @@
 add_subdirectory(Crypto)
+add_subdirectory(String)
 
 add_library(BBDownUtility STATIC
   AriaRpc.cpp
@@ -8,7 +9,6 @@ add_library(BBDownUtility STATIC
   Network.cpp
   Json.cpp
   Random.cpp
-  String.cpp
 )
 
 target_include_directories(BBDownUtility PUBLIC
@@ -16,6 +16,7 @@ target_include_directories(BBDownUtility PUBLIC
 )
 
 target_link_libraries(BBDownUtility
+  BBDownUtilityString
   nlohmann_json
   spdlog
 )
