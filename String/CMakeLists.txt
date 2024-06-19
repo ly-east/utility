@@ -1,4 +1,5 @@
 add_library(BBDownUtilityString STATIC
+  Format.cpp
   Trim.cpp
 )
 
