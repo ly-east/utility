@@ -1,4 +1,4 @@
-#include "Utility/Json.h"
+#include "Utility/Json/Json.h"
 #include "spdlog/spdlog.h"
 #include <cassert>
 #include <exception>
@@ -6,6 +6,7 @@
 #include <fstream>
 
 namespace utility {
+namespace json {
 JsonPtrTy loadJsonFile(const std::string &path) {
   std::filesystem::path p{path};
 
@@ -74,4 +75,5 @@ bool getOptionalField(const nlohmann::json &json_l, const std::string &field_l,
   result = r.is_null() ? std::move(l) : std::move(r);
   return true;
 }
+} // namespace json
 } // namespace utility
