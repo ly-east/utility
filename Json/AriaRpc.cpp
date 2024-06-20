@@ -37,8 +37,8 @@ const char *getValueString(Value value) {
 
 namespace utility {
 namespace aria {
-
-bool ariaRpc(Method method, const std::string &param, const RpcArgTy &option) {
+std::string getRpcRequest(Method method, const std::string &param,
+                          const RpcArgTy &option) {
   using nlohmann::json;
 
   json j = {{getKeyString(Key::JSONRPC), getValueString(Value::JSONRPC)},
@@ -55,9 +55,7 @@ bool ariaRpc(Method method, const std::string &param, const RpcArgTy &option) {
     j[getKeyString(Key::PARAMS)].emplace_back(std::move(opt));
   }
 
-  spdlog::debug("\n{}", j.dump());
-
-  return true;
+  return j.dump();
 }
 } // namespace aria
 } // namespace utility
