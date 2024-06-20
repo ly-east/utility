@@ -1,4 +1,4 @@
-#include "Utility/Launch.h"
+#include "Utility/Process/Launch.h"
 #include "Utility/String/Trim.h"
 #include "spdlog/spdlog.h"
 #include <cassert>
@@ -11,6 +11,20 @@
 #include <windows.h>
 
 namespace utility {
+namespace process {
+std::string getExecutableFilePath(const std::string &name) {
+  std::filesystem::path p{std::filesystem::current_path()};
+  p.append(name);
+  if (!p.has_extension())
+    p.replace_extension(".exe");
+
+  // Program at the same path of BBDown is preferred to use
+  if (std::filesystem::exists(p) && std::filesystem::is_regular_file(p))
+    return p.string();
+
+  return locateProgram(name);
+}
+
 std::string locateProgram(const std::string &name) {
   std::string path;
 
@@ -123,4 +137,5 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
 
   return exit_code;
 }
+} // namespace process
 } // namespace utility
