@@ -1,7 +1,9 @@
 #include "Utility/Json/AriaRpc.h"
+#include "Type/AriaStatus.h"
 #include "Utility/Json/Json.h"
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
+#include <cstdint>
 #include <exception>
 #include <functional>
 #include <unordered_map>
@@ -98,6 +100,43 @@ bool getRpcResponseGid(const std::string &response, std::string &gid) {
       gid = result.template get<std::string>();
     } catch (const std::exception &e) {
       spdlog::error("getRpcResponseGid failed: {}", e.what());
+      return false;
+    }
+
+    return true;
+  };
+
+  return parseRpcResponse(response, extractor);
+}
+
+bool getRpcResponseStatus(const std::string &response,
+                          bbdown::StatusResult &status) {
+  auto extractor = [&status](const nlohmann::json &result) -> bool {
+    try {
+      uint64_t current =
+          std::stoull(result["completedLength"].get<std::string>());
+      uint64_t total = std::stoull(result["totalLength"].get<std::string>());
+      status.progress = (double)current / (double)total;
+
+      status.speed =
+          (double)std::stoull(result["downloadSpeed"].get<std::string>()) /
+          1024;
+      status.path = result["files"].front()["path"].get<std::string>();
+
+      std::string task_status{result["status"].get<std::string>()};
+      if ("active" == task_status)
+        status.status = bbdown::TaskStatus::ACTIVE;
+      else if ("complete" == task_status)
+        status.status = bbdown::TaskStatus::COMPLETE;
+      else if ("paused" == task_status)
+        status.status = bbdown::TaskStatus::PAUSED;
+      else {
+        spdlog::warn("unknown task status {}", task_status);
+        status.status = bbdown::TaskStatus::UNKNOWN;
+      }
+
+    } catch (const std::exception &e) {
+      spdlog::error("getRpcResponseStatus failed: {}", e.what());
       return false;
     }
 
