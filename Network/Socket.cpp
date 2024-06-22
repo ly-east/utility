@@ -1,10 +1,11 @@
-#include "Utility/Network.h"
+#include "Utility/Network/Socket.h"
 #include "spdlog/spdlog.h"
 #include <ws2tcpip.h>
 
 #pragma comment(lib, "ws2_32.lib")
 
 namespace utility {
+namespace network {
 uint16_t getAvailablePort(uint16_t port_begin, int type) {
   WSADATA wsaData;
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -53,4 +54,5 @@ uint16_t getAvailablePort(uint16_t port_begin, int type) {
   WSACleanup();
   return port_available;
 }
+} // namespace network
 } // namespace utility

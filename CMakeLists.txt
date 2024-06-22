@@ -1,13 +1,13 @@
 add_subdirectory(Crypto)
 add_subdirectory(Json)
+add_subdirectory(Math)
+add_subdirectory(Network)
 add_subdirectory(Process)
 add_subdirectory(String)
 
 add_library(BBDownUtility STATIC
   Filesystem.cpp
   Logger.cpp
-  Network.cpp
-  Random.cpp
 )
 
 target_include_directories(BBDownUtility PUBLIC
