@@ -4,7 +4,7 @@
 
 namespace utility {
 namespace network {
-std::string getUserAgent() {
+const std::string getUserAgent() {
   // refer: http://useragent.kuzhazha.com/PC/ https://www.useragents.me/
   static const std::array<std::string, 4> ua{
       // Edge on Win64
