@@ -71,7 +71,8 @@ int waitForExitCode(const std::string &path, char *arg) {
   return launchHiddenProgram(path, arg, [](std::string &&) {});
 }
 
-int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
+int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func,
+                        std::promise<bool> *p) {
   HANDLE hChildStd_OUT_Rd = NULL;
   HANDLE hChildStd_OUT_Wr = NULL;
 
@@ -100,10 +101,15 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func) {
     spdlog::error("CreateProcess failed ({})", GetLastError());
     CloseHandle(hChildStd_OUT_Rd);
     CloseHandle(hChildStd_OUT_Wr);
+
+    if (p)
+      p->set_value(false);
     return 1;
   }
 
   spdlog::debug("process {} launched", pi.dwProcessId);
+  if (p)
+    p->set_value(true);
 
   CloseHandle(hChildStd_OUT_Wr);
 
