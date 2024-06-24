@@ -131,7 +131,7 @@ bool getRpcResponseStatus(const std::string &response,
       else if ("paused" == task_status)
         status.status = bbdown::TaskStatus::PAUSED;
       else if ("error" == task_status)
-        status.status = bbdown::TaskStatus::ERROR;
+        status.status = bbdown::TaskStatus::ERRoR;
       else {
         spdlog::warn("unknown task status {}", task_status);
         status.status = bbdown::TaskStatus::UNKNOWN;

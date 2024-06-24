@@ -1,11 +1,11 @@
 #include "Utility/Network/Socket.h"
 #include "spdlog/spdlog.h"
+#include <WinSock2.h>
 #include <ws2tcpip.h>
 
 #pragma comment(lib, "ws2_32.lib")
 
-namespace utility {
-namespace network {
+namespace {
 uint16_t getAvailablePort(uint16_t port_begin, int type) {
   WSADATA wsaData;
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -53,6 +53,13 @@ uint16_t getAvailablePort(uint16_t port_begin, int type) {
 
   WSACleanup();
   return port_available;
+}
+} // namespace
+
+namespace utility {
+namespace network {
+uint16_t getAvailableTcpPort(uint16_t port_begin) {
+  return getAvailablePort(port_begin, SOCK_STREAM);
 }
 } // namespace network
 } // namespace utility
