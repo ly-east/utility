@@ -79,8 +79,12 @@ std::string getRpcRequest(Method method, const std::string &param,
 
   json j = {{getKeyString(Key::JSONRPC), getValueString(Value::JSONRPC)},
             {getKeyString(Key::ID), getValueString(Value::ID)},
-            {getKeyString(Key::METHOD), getMethodString(method)},
-            {getKeyString(Key::PARAMS), {{param}}}};
+            {getKeyString(Key::METHOD), getMethodString(method)}};
+
+  if (Method::ADD_URI == method)
+    j[getKeyString(Key::PARAMS)] = {{param}};
+  else
+    j[getKeyString(Key::PARAMS)] = {param};
 
   if (option.size()) {
     json opt;
