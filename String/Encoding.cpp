@@ -21,7 +21,8 @@ std::string utf8ToString(const std::string &str) {
   memset(pBuf, 0, nLen + 1);
   WideCharToMultiByte(CP_ACP, 0, pwBuf, nwLen, pBuf, nLen, NULL, NULL);
 
-  return std::string(pBuf, strnlen(pBuf, nLen));
+  auto string{std::string(pBuf, strnlen(pBuf, nLen))};
+  return string;
 }
 
 std::string stringToUtf8(const std::string &str) {
@@ -41,7 +42,8 @@ std::string stringToUtf8(const std::string &str) {
   ZeroMemory(pBuf, nLen + 1);
   WideCharToMultiByte(CP_UTF8, 0, pwBuf, nwLen, pBuf, nLen, NULL, NULL);
 
-  return std::string(pBuf, strnlen(pBuf, nLen));
+  auto string{std::string(pBuf, strnlen(pBuf, nLen))};
+  return string;
 }
 } // namespace string
 } // namespace utility
