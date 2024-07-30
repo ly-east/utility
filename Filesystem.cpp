@@ -17,6 +17,6 @@ bool removePath(const std::filesystem::path &path) {
     return false;
   }
 
-  return std::filesystem::remove(path);
+  return std::filesystem::remove_all(path);
 }
 } // namespace utility
