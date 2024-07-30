@@ -1,49 +1,47 @@
 #include "Utility/String/Encoding.h"
+#include "spdlog/spdlog.h"
 #include <Windows.h>
 #include <memory>
 
-namespace utility {
-namespace string {
-std::string utf8ToString(const std::string &str) {
-  int nwLen = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0);
+namespace {
+std::string conversion(const std::string &str, UINT codepage_l,
+                       UINT codepage_r) {
+  int nwLen = MultiByteToWideChar(codepage_l, 0, str.c_str(), -1, NULL, 0);
   ++nwLen; // to truncate string
 
   std::unique_ptr<wchar_t[]> wide_buf{std::make_unique<wchar_t[]>(nwLen)};
   wchar_t *pwBuf = wide_buf.get();
   memset(pwBuf, 0, nwLen * 2 + 2);
-  MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), pwBuf, nwLen);
+  MultiByteToWideChar(codepage_l, 0, str.c_str(), str.length(), pwBuf, nwLen);
 
-  int nLen = WideCharToMultiByte(CP_ACP, 0, pwBuf, -1, NULL, NULL, NULL, NULL);
+  int nLen =
+      WideCharToMultiByte(codepage_r, 0, pwBuf, -1, NULL, NULL, NULL, NULL);
   ++nLen;
 
   std::unique_ptr<char[]> buf{std::make_unique<char[]>(nLen)};
   char *pBuf = buf.get();
-  memset(pBuf, 0, nLen + 1);
-  WideCharToMultiByte(CP_ACP, 0, pwBuf, nwLen, pBuf, nLen, NULL, NULL);
+  memset(pBuf, 0, nLen);
+  WideCharToMultiByte(codepage_r, 0, pwBuf, nwLen, pBuf, nLen, NULL, NULL);
 
-  auto string{std::string(pBuf, strnlen(pBuf, nLen))};
-  return string;
+  auto result{std::string(pBuf, strnlen(pBuf, nLen))};
+  try {
+    buf.release();
+  } catch (const std::exception &e) {
+    spdlog::error("encoding: {}", e.what());
+  }
+
+  return result;
+}
+} // namespace
+
+namespace utility {
+namespace string {
+std::string utf8ToString(const std::string &str) {
+  return conversion(str, CP_UTF8, CP_ACP);
 }
 
 std::string stringToUtf8(const std::string &str) {
-  int nwLen = ::MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, NULL, 0);
-  ++nwLen; // to truncate string
-
-  std::unique_ptr<wchar_t[]> wide_buf{std::make_unique<wchar_t[]>(nwLen)};
-  wchar_t *pwBuf = wide_buf.get();
-  ZeroMemory(pwBuf, nwLen * 2 + 2);
-  MultiByteToWideChar(CP_ACP, 0, str.c_str(), str.length(), pwBuf, nwLen);
-
-  int nLen = WideCharToMultiByte(CP_UTF8, 0, pwBuf, -1, NULL, NULL, NULL, NULL);
-  ++nLen;
-
-  std::unique_ptr<char[]> buf{std::make_unique<char[]>(nLen)};
-  char *pBuf = buf.get();
-  ZeroMemory(pBuf, nLen + 1);
-  WideCharToMultiByte(CP_UTF8, 0, pwBuf, nwLen, pBuf, nLen, NULL, NULL);
-
-  auto string{std::string(pBuf, strnlen(pBuf, nLen))};
-  return string;
+  return conversion(str, CP_ACP, CP_UTF8);
 }
 } // namespace string
 } // namespace utility
