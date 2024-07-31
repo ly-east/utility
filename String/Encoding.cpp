@@ -23,14 +23,7 @@ std::string conversion(const std::string &str, UINT codepage_l,
   memset(pBuf, 0, nLen);
   WideCharToMultiByte(codepage_r, 0, pwBuf, nwLen, pBuf, nLen, NULL, NULL);
 
-  auto result{std::string(pBuf, strnlen(pBuf, nLen))};
-  try {
-    buf.release();
-  } catch (const std::exception &e) {
-    spdlog::error("encoding: {}", e.what());
-  }
-
-  return result;
+  return std::string(pBuf, strnlen(pBuf, nLen));
 }
 } // namespace
 
