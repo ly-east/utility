@@ -7,11 +7,11 @@
 
 namespace utility {
 namespace string {
-std::string utf8ToString(const std::string &str) {
+std::string utf8ToANSI(const std::string &str) {
   return unicodeToANSI(utf8ToUnicode(str));
 }
 
-std::string stringToUtf8(const std::string &str) {
+std::string ansiToUtf8(const std::string &str) {
   return unicodeToUTF8(ansiToUnicode(str));
 }
 
