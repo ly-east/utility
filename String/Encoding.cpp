@@ -1,40 +1,80 @@
 #include "Utility/String/Encoding.h"
 #include "spdlog/spdlog.h"
 #include <Windows.h>
+#include <codecvt>
+#include <locale>
 #include <memory>
-
-namespace {
-std::string conversion(const std::string &str, UINT codepage_l,
-                       UINT codepage_r) {
-  int nwLen = MultiByteToWideChar(codepage_l, 0, str.c_str(), -1, NULL, 0);
-  ++nwLen; // to truncate string
-
-  std::unique_ptr<wchar_t[]> wide_buf{std::make_unique<wchar_t[]>(nwLen)};
-  wchar_t *pwBuf = wide_buf.get();
-  memset(pwBuf, 0, nwLen * 2 + 2);
-  MultiByteToWideChar(codepage_l, 0, str.c_str(), str.length(), pwBuf, nwLen);
-
-  int nLen =
-      WideCharToMultiByte(codepage_r, 0, pwBuf, -1, NULL, NULL, NULL, NULL);
-  ++nLen;
-
-  std::unique_ptr<char[]> buf{std::make_unique<char[]>(nLen)};
-  char *pBuf = buf.get();
-  memset(pBuf, 0, nLen);
-  WideCharToMultiByte(codepage_r, 0, pwBuf, nwLen, pBuf, nLen, NULL, NULL);
-
-  return std::string(pBuf, strnlen(pBuf, nLen));
-}
-} // namespace
 
 namespace utility {
 namespace string {
 std::string utf8ToString(const std::string &str) {
-  return conversion(str, CP_UTF8, CP_ACP);
+  return unicodeToANSI(utf8ToUnicode(str));
 }
 
 std::string stringToUtf8(const std::string &str) {
-  return conversion(str, CP_ACP, CP_UTF8);
+  return unicodeToUTF8(ansiToUnicode(str));
+}
+
+std::string unicodeToUTF8(const std::wstring &wstr) {
+  std::string ret;
+
+  try {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> wcv;
+    ret = wcv.to_bytes(wstr);
+  } catch (const std::exception &e) {
+    spdlog::error("unicodeToUTF8: {}", e.what());
+  }
+
+  return ret;
+}
+
+std::wstring utf8ToUnicode(const std::string &str) {
+  std::wstring ret;
+
+  try {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> wcv;
+    ret = wcv.from_bytes(str);
+  } catch (const std::exception &e) {
+    spdlog::error("utf8ToUnicode: {}", e.what());
+  }
+
+  return ret;
+}
+
+std::string unicodeToANSI(const std::wstring &wstr) {
+  std::string ret;
+  std::mbstate_t state = {};
+  const wchar_t *src = wstr.data();
+
+  setlocale(LC_CTYPE, "");
+  size_t len = std::wcsrtombs(nullptr, &src, 0, &state);
+
+  if (static_cast<size_t>(-1) != len) {
+    std::unique_ptr<char[]> buff(new char[len + 1]);
+    len = std::wcsrtombs(buff.get(), &src, len, &state);
+
+    if (static_cast<size_t>(-1) != len)
+      ret.assign(buff.get(), len);
+  }
+
+  return ret;
+}
+
+std::wstring ansiToUnicode(const std::string &str) {
+  std::wstring ret;
+  std::mbstate_t state = {};
+  const char *src = str.data();
+  size_t len = std::mbsrtowcs(nullptr, &src, 0, &state);
+
+  if (static_cast<size_t>(-1) != len) {
+    std::unique_ptr<wchar_t[]> buff(new wchar_t[len + 1]);
+    len = std::mbsrtowcs(buff.get(), &src, len, &state);
+
+    if (static_cast<size_t>(-1) != len)
+      ret.assign(buff.get(), len);
+  }
+
+  return ret;
 }
 } // namespace string
 } // namespace utility
