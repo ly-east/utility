@@ -15,6 +15,7 @@ bool setFileLogger(const std::string &filename) {
     // [Y-M-D H-M-S.e][thread ID][log level]content
     logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%t][%l]%v");
     logger->set_level(spdlog::level::debug);
+    logger->flush_on(spdlog::level::err);
 
     spdlog::set_default_logger(logger);
     has_settled = true;
