@@ -1,6 +1,7 @@
 add_library(BBDownUtilityString STATIC
   Encoding.cpp
   Format.cpp
+  Replace.cpp
   Trim.cpp
 )
 
