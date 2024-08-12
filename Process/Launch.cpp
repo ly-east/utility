@@ -1,17 +1,22 @@
 #include "Utility/Process/Launch.h"
 #include "Utility/String/Trim.h"
 #include "spdlog/spdlog.h"
+#include <Windows.h>
 #include <cassert>
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
 #include <iostream>
 #include <memory>
-#include <string>
-#include <windows.h>
 
 namespace utility {
 namespace process {
+// Type of CreateProcess caller function
+using CrtFuncTy = std::function<bool(HANDLE, PROCESS_INFORMATION &)>;
+
+int launchHiddenProgram(CrtFuncTy caller, RdtCbFuncTy func,
+                        std::promise<bool> *p);
+
 std::string getExecutableFilePath(const std::string &name) {
   std::filesystem::path p{std::filesystem::current_path()};
   p.append(name);
@@ -73,6 +78,40 @@ int waitForExitCode(const std::string &path, char *arg) {
 
 int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func,
                         std::promise<bool> *p) {
+  auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
+    STARTUPINFOA si{sizeof(STARTUPINFO)};
+
+    si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.hStdError = writer; // stderr is redirected also
+    si.hStdOutput = writer;
+    si.wShowWindow = SW_HIDE;
+
+    return CreateProcessA(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL,
+                          &si, &pi);
+  };
+
+  return launchHiddenProgram(caller, func, p);
+}
+
+int launchHiddenProgram(const std::wstring &path, wchar_t *arg,
+                        RdtCbFuncTy func, std::promise<bool> *p) {
+  auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
+    STARTUPINFOW si{sizeof(STARTUPINFO)};
+
+    si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.hStdError = writer; // stderr is redirected also
+    si.hStdOutput = writer;
+    si.wShowWindow = SW_HIDE;
+
+    return CreateProcessW(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL,
+                          &si, &pi);
+  };
+
+  return launchHiddenProgram(caller, func, p);
+}
+
+int launchHiddenProgram(CrtFuncTy caller, RdtCbFuncTy func,
+                        std::promise<bool> *p) {
   HANDLE hChildStd_OUT_Rd = NULL;
   HANDLE hChildStd_OUT_Wr = NULL;
 
@@ -87,17 +126,10 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func,
   // let reading handle cannot be inherited
   SetHandleInformation(hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0);
 
-  STARTUPINFOA si{sizeof(STARTUPINFO)};
   PROCESS_INFORMATION pi{};
 
-  si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-  si.hStdError = hChildStd_OUT_Wr; // stderr is redirected also
-  si.hStdOutput = hChildStd_OUT_Wr;
-  si.wShowWindow = SW_HIDE;
-
   // create subprocess
-  if (!CreateProcessA(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL, &si,
-                      &pi)) {
+  if (!caller(hChildStd_OUT_Wr, pi)) {
     spdlog::error("CreateProcess failed ({})", GetLastError());
     CloseHandle(hChildStd_OUT_Rd);
     CloseHandle(hChildStd_OUT_Wr);
