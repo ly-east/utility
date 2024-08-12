@@ -28,7 +28,7 @@ std::string getExecutableFilePath(const std::string &name) {
 std::string locateProgram(const std::string &name) {
   std::string path;
 
-  const unsigned buf_size = std::max<unsigned>(32, name.size() + 16);
+  const unsigned buf_size = std::max<unsigned>(32, (unsigned)name.size() + 16);
   std::unique_ptr<char[]> buf;
 
   try {
@@ -113,7 +113,7 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func,
 
   CloseHandle(hChildStd_OUT_Wr);
 
-  size_t buf_size = 64;
+  DWORD buf_size = 128;
   std::unique_ptr<char[]> buf = std::make_unique<char[]>(buf_size);
   char *const buf_ptr = buf.get();
   DWORD byte_read = 0;
