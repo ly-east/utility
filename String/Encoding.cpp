@@ -76,5 +76,15 @@ std::wstring ansiToUnicode(const std::string &str) {
 
   return ret;
 }
+
+std::u16string utf8ToUtf16(const std::string &str) {
+  std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> cvt;
+  return cvt.from_bytes(str);
+}
+
+std::string utf16ToUtf8(const std::u16string &str) {
+  std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> cvt;
+  return cvt.to_bytes(str);
+}
 } // namespace string
 } // namespace utility
