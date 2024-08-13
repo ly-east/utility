@@ -1,4 +1,5 @@
 #include "Utility/Process/Launch.h"
+#include "Utility/String/Encoding.h"
 #include "Utility/String/Trim.h"
 #include "spdlog/spdlog.h"
 #include <Windows.h>
@@ -31,23 +32,16 @@ std::string getExecutableFilePath(const std::string &name) {
 }
 
 std::string locateProgram(const std::string &name) {
+  using namespace utility::string;
+
+  std::u16string wide_name{utf8ToUtf16(ansiToUtf8(name))};
   std::string path;
-
-  const unsigned buf_size = std::max<unsigned>(32, (unsigned)name.size() + 16);
-  std::unique_ptr<char[]> buf;
-
-  try {
-    buf = std::make_unique<char[]>(buf_size);
-  } catch (const std::exception &e) {
-    spdlog::error("make_unique failed: {}", e.what());
-    return path;
-  }
 
   // locate cmd
 
-  char cmd_path[32]{};
+  wchar_t cmd_path[64]{};
   size_t env_size = 0;
-  auto error = getenv_s(&env_size, cmd_path, "ComSpec");
+  auto error = _wgetenv_s(&env_size, cmd_path, L"ComSpec");
   if (error) {
     spdlog::error("getenv_s failed: {}", error);
     return path;
@@ -55,9 +49,20 @@ std::string locateProgram(const std::string &name) {
 
   // command line
 
-  char *const buf_ptr = buf.get();
-  memset(buf_ptr, 0, buf_size);
-  snprintf(buf_ptr, buf_size, "/c \"where %s\"", name.c_str());
+  const unsigned buf_size =
+      std::max<unsigned>(64, (unsigned)wide_name.size() + 16);
+  std::unique_ptr<wchar_t[]> buf;
+
+  try {
+    buf = std::make_unique<wchar_t[]>(buf_size);
+  } catch (const std::exception &e) {
+    spdlog::error("make_unique failed: {}", e.what());
+    return path;
+  }
+
+  wchar_t *const buf_ptr = buf.get();
+  _snwprintf(buf_ptr, buf_size, L"/c \"where %s\"",
+             (wchar_t *)wide_name.c_str());
 
   int exit_code =
       launchHiddenProgram(cmd_path, buf_ptr, [&path](std::string &&output) {
@@ -153,6 +158,7 @@ int launchHiddenProgram(CrtFuncTy caller, RdtCbFuncTy func,
   // read from subprocess until pipe is closed
   while (ReadFile(hChildStd_OUT_Rd, buf_ptr, buf_size, &byte_read, NULL) &&
          byte_read > 0) {
+    // Content read in buffer is encoded by ANSI
     auto output{utility::string::trim(std::string(buf_ptr, byte_read))};
 
     if (output.empty())
