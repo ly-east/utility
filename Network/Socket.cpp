@@ -1,12 +1,20 @@
 #include "Utility/Network/Socket.h"
 #include "spdlog/spdlog.h"
+
+#if defined(_WIN32)
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 
 #pragma comment(lib, "ws2_32.lib")
-
+#elif defined(__linux__)
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 namespace {
-uint16_t getAvailablePort(uint16_t port_begin, int type) {
+#if defined(_WIN32)
+uint16_t getAvailablePortWindows(uint16_t port_begin, int type) {
   WSADATA wsaData;
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
   if (iResult != 0) {
@@ -54,12 +62,47 @@ uint16_t getAvailablePort(uint16_t port_begin, int type) {
   WSACleanup();
   return port_available;
 }
+#elif defined(__linux__)
+uint16_t getAvailablePortLinux(uint16_t port_begin, int type) {
+  unsigned short local_port;
+  struct sockaddr_in sin;
+  int addrlen = sizeof(sin);
+
+  // Create a socket
+  int sd = socket(AF_INET, type, IPPROTO_TCP);
+  if (sd == -1) {
+    // Handle error
+    return 0;
+  }
+
+  // Bind the socket (let the system choose a port number)
+  sin.sin_family = AF_INET;
+  sin.sin_addr.s_addr = INADDR_ANY;
+  sin.sin_port = 0; // Let the system choose a port number
+  if (bind(sd, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
+    // Handle error
+    close(sd);
+    return 0;
+  }
+
+  // Read the binding to get the port number
+  getsockname(sd, (struct sockaddr *)&sin, (socklen_t *)&addrlen);
+  local_port = ntohs(sin.sin_port);
+
+  close(sd);
+  return local_port;
+}
+#endif
 } // namespace
 
 namespace utility {
 namespace network {
 uint16_t getAvailableTcpPort(uint16_t port_begin) {
-  return getAvailablePort(port_begin, SOCK_STREAM);
+#if defined(_WIN32)
+  return getAvailablePortWindows(port_begin, SOCK_STREAM);
+#elif defined(__linux__)
+  return getAvailablePortLinux(port_begin, SOCK_STREAM);
+#endif
 }
 } // namespace network
 } // namespace utility

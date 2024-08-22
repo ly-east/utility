@@ -1,6 +1,5 @@
 #include "Utility/String/Encoding.h"
 #include "spdlog/spdlog.h"
-#include <Windows.h>
 #include <codecvt>
 #include <locale>
 #include <memory>
