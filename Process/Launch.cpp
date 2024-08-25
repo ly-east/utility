@@ -271,9 +271,9 @@ int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func,
 }
 
 #if defined(_WIN32)
-int launchHiddenProgramWindows(const std::wstring &path, wchar_t *arg,
-                               utility::process::RdtCbFuncTy func,
-                               std::promise<bool> *p) {
+int launchHiddenProgram(const std::wstring &path, wchar_t *arg,
+                        utility::process::RdtCbFuncTy func,
+                        std::promise<bool> *p) {
   auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
     STARTUPINFOW si{sizeof(STARTUPINFO)};
 
