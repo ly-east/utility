@@ -15,9 +15,7 @@ bool remove(const std::filesystem::path &path) {
 
   try {
     std::filesystem::remove(path);
-  } catch (const std::exception &e) {
-    // spdlog::error("remove: {}. Maybe path indicates a non-empty directory",
-    //               e.what());
+  } catch (const std::exception &) {
     return false;
   }
 

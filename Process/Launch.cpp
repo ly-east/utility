@@ -2,7 +2,6 @@
 #include "Utility/String/Encoding.h"
 #include "Utility/String/Trim.h"
 #include "spdlog/spdlog.h"
-#include <Windows.h>
 #include <cassert>
 #include <cstdlib>
 #include <exception>
@@ -10,28 +9,20 @@
 #include <iostream>
 #include <memory>
 
-namespace utility {
-namespace process {
+#if defined(_WIN32)
+#include <Windows.h>
+
 // Type of CreateProcess caller function
 using CrtFuncTy = std::function<bool(HANDLE, PROCESS_INFORMATION &)>;
+#elif defined(__linux__)
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
 
-int launchHiddenProgram(CrtFuncTy caller, RdtCbFuncTy func,
-                        std::promise<bool> *p);
-
-std::string getExecutableFilePath(const std::string &name) {
-  std::filesystem::path p{std::filesystem::current_path()};
-  p.append(name);
-  if (!p.has_extension())
-    p.replace_extension(".exe");
-
-  // Program at the same path of BBDown is preferred to use
-  if (std::filesystem::exists(p) && std::filesystem::is_regular_file(p))
-    return p.string();
-
-  return locateProgram(name);
-}
-
-std::string locateProgram(const std::string &name) {
+namespace {
+#if defined(_WIN32)
+std::string locateProgramWindows(const std::string &name) {
   using namespace utility::string;
 
   std::u16string wide_name{utf8ToUtf16(ansiToUtf8(name))};
@@ -61,13 +52,12 @@ std::string locateProgram(const std::string &name) {
   }
 
   wchar_t *const buf_ptr = buf.get();
-  _snwprintf(buf_ptr, buf_size, L"/c \"where %s\"",
-             (wchar_t *)wide_name.c_str());
+  _snwprintf_s(buf_ptr, buf_size * sizeof(wchar_t), buf_size,
+               L"/c \"where %s\"", (wchar_t *)wide_name.c_str());
 
-  int exit_code =
-      launchHiddenProgram(cmd_path, buf_ptr, [&path](std::string &&output) {
-        path.append(output);
-      });
+  int exit_code = utility::process::launchHiddenProgram(
+      cmd_path, buf_ptr,
+      [&path](std::string &&output) { path.append(output); });
 
   if (exit_code) {
     spdlog::error("cmd exits with code {}", exit_code);
@@ -77,46 +67,9 @@ std::string locateProgram(const std::string &name) {
   return path;
 }
 
-int waitForExitCode(const std::string &path, char *arg) {
-  return launchHiddenProgram(path, arg, [](std::string &&) {});
-}
-
-int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func,
-                        std::promise<bool> *p) {
-  auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
-    STARTUPINFOA si{sizeof(STARTUPINFO)};
-
-    si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-    si.hStdError = writer; // stderr is redirected also
-    si.hStdOutput = writer;
-    si.wShowWindow = SW_HIDE;
-
-    return CreateProcessA(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL,
-                          &si, &pi);
-  };
-
-  return launchHiddenProgram(caller, func, p);
-}
-
-int launchHiddenProgram(const std::wstring &path, wchar_t *arg,
-                        RdtCbFuncTy func, std::promise<bool> *p) {
-  auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
-    STARTUPINFOW si{sizeof(STARTUPINFO)};
-
-    si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-    si.hStdError = writer; // stderr is redirected also
-    si.hStdOutput = writer;
-    si.wShowWindow = SW_HIDE;
-
-    return CreateProcessW(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL,
-                          &si, &pi);
-  };
-
-  return launchHiddenProgram(caller, func, p);
-}
-
-int launchHiddenProgram(CrtFuncTy caller, RdtCbFuncTy func,
-                        std::promise<bool> *p) {
+int launchHiddenProgramWindows(CrtFuncTy caller,
+                               utility::process::RdtCbFuncTy func,
+                               std::promise<bool> *p) {
   HANDLE hChildStd_OUT_Rd = NULL;
   HANDLE hChildStd_OUT_Wr = NULL;
 
@@ -180,6 +133,173 @@ int launchHiddenProgram(CrtFuncTy caller, RdtCbFuncTy func,
   CloseHandle(hChildStd_OUT_Rd);
 
   return exit_code;
+}
+
+#elif defined(__linux__)
+std::string locateProgramLinux(const std::string &name) {
+  const char *argv[] = {"which", name.c_str(), nullptr};
+  std::string path;
+
+  int exit_code = utility::process::launchHiddenProgram(
+      argv[0], argv, [&path](std::string &&output) { path.append(output); });
+
+  if (exit_code) {
+    spdlog::error("cmd exits with code {}", exit_code);
+    path.clear();
+  }
+
+  return path;
+}
+
+int launchHiddenProgramLinux(const std::string &path, char *arg,
+                             RdtCbFuncTy func, std::promise<bool> *p) {
+  int pipefd[2];
+  pid_t pid = 0;
+
+  // create pipe
+  if (pipe(pipefd) == -1) {
+    spdlog::error("launchHiddenProgram: %s", strerror("pipe"));
+    return 1;
+  }
+
+  // create subprocess
+  pid = fork();
+  if (pid == -1) {
+    spdlog::error("launchHiddenProgram: %s", strerror("fork"));
+    return 1;
+  }
+
+  // subprocess
+  if (pid == 0) {
+    close(pipefd[0]); // close reading end
+
+    dup2(pipefd[1], STDOUT_FILENO); // redirect STDOUT to pipefd[0]
+    dup2(pipefd[1], STDERR_FILENO);
+
+    const char *args[] =
+        //  {"ls", "-l", "-h", "-a", nullptr};
+        {"./which", "ffmpeg", nullptr};
+
+    execvp(path.c_str(), (char *const *)arg);
+
+    // error occurred if it returns
+    spdlog::error("launchHiddenProgram: %s", strerror("execvp"));
+    return 1;
+  }
+
+  // parent process
+
+  spdlog::debug("process {} launched", (int)pid);
+  if (p)
+    p->set_value(true);
+
+  close(pipefd[1]); // close writing end
+
+  // read output from pipe
+
+  char buf[128];
+  ssize_t numRead;
+  while ((numRead = read(pipefd[0], buf, sizeof(buf) - 1)) > 0) {
+    auto output{utility::string::trim(std::string(buf, numRead))};
+
+    if (output.empty())
+      continue;
+
+    func(std::move(output));
+  }
+
+  if (numRead == -1)
+    spdlog::error("launchHiddenProgram: %s", strerror("read"));
+
+  // wait for exit status
+
+  int status = 0, exit_code = 0;
+  waitpid(pid, &status, 0); // waiting for subprocess
+
+  if (WIFEXITED(status))
+    exit_code = WEXITSTATUS(status); // normal exit
+  else if (WIFSIGNALED(status)) {
+    exit_code = WTERMSIG(status);
+    spdlog::error("launchHiddenProgram: child killed by signal. %d", exit_code);
+  }
+
+  close(pipefd[0]);
+
+  return exit_code;
+}
+#endif
+} // namespace
+
+namespace utility {
+namespace process {
+std::string getExecutableFilePath(const std::string &name) {
+  std::filesystem::path p{std::filesystem::current_path()};
+  p.append(name);
+
+#if defined(_WIN32)
+  if (!p.has_extension())
+    p.replace_extension(".exe");
+#endif
+
+  // Program at the same path of BBDown is preferred to use
+  if (std::filesystem::exists(p) && std::filesystem::is_regular_file(p))
+    return p.string();
+
+  return locateProgram(name);
+}
+
+int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func,
+                        std::promise<bool> *p) {
+#if defined(_WIN32)
+  auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
+    STARTUPINFOA si{sizeof(STARTUPINFO)};
+
+    si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.hStdError = writer; // stderr is redirected also
+    si.hStdOutput = writer;
+    si.wShowWindow = SW_HIDE;
+
+    return CreateProcessA(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL,
+                          &si, &pi);
+  };
+
+  return ::launchHiddenProgramWindows(caller, func, p);
+#elif defined(__linux__)
+  // TODO: split args?
+  return ::launchHiddenProgramLinux(path, arg, func, p);
+#endif
+}
+
+#if defined(_WIN32)
+int launchHiddenProgramWindows(const std::wstring &path, wchar_t *arg,
+                               utility::process::RdtCbFuncTy func,
+                               std::promise<bool> *p) {
+  auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
+    STARTUPINFOW si{sizeof(STARTUPINFO)};
+
+    si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.hStdError = writer; // stderr is redirected also
+    si.hStdOutput = writer;
+    si.wShowWindow = SW_HIDE;
+
+    return CreateProcessW(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL,
+                          &si, &pi);
+  };
+
+  return ::launchHiddenProgramWindows(caller, func, p);
+}
+#endif
+
+std::string locateProgram(const std::string &name) {
+#if defined(_WIN32)
+  return locateProgramWindows(name);
+#elif defined(__linux__)
+  return locateProgramLinux(name);
+#endif
+}
+
+int waitForExitCode(const std::string &path, char *arg) {
+  return launchHiddenProgram(path, arg, [](std::string &&) {});
 }
 } // namespace process
 } // namespace utility
