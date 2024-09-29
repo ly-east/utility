@@ -1,8 +1,9 @@
-#include "Utility/Logger.h"
+#include "Utility/Log/Logger.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/spdlog.h"
 
 namespace utility {
+namespace log {
 bool setFileLogger(const std::string &filename) {
   static bool has_settled = false;
 
@@ -26,4 +27,5 @@ bool setFileLogger(const std::string &filename) {
 
   return true;
 }
+} // namespace log
 } // namespace utility

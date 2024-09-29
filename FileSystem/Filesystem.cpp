@@ -1,7 +1,8 @@
-#include "Utility/Filesystem.h"
+#include "Utility/FileSystem/Filesystem.h"
 #include "spdlog/spdlog.h"
 
 namespace utility {
+namespace filesystem {
 void createDirectory(const std::filesystem::path &p) {
   if (!std::filesystem::exists(p))
     std::filesystem::create_directories(p);
@@ -30,4 +31,5 @@ bool removeAll(const std::filesystem::path &path) {
 
   return std::filesystem::remove_all(path);
 }
+} // namespace filesystem
 } // namespace utility
