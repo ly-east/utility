@@ -1,8 +1,31 @@
-add_subdirectory(Crypto)
-add_subdirectory(FileSystem)
-add_subdirectory(Json)
-add_subdirectory(Log)
-add_subdirectory(Math)
-add_subdirectory(Network)
-add_subdirectory(Process)
-add_subdirectory(String)
+add_library(Utility SHARED
+  Crypto/Hash.cpp
+  FileSystem/Filesystem.cpp
+  Json/AriaRpc.cpp
+  Json/Json.cpp
+  Log/Logger.cpp
+  Math/Random.cpp
+  Network/Socket.cpp
+  Network/UserAgent.cpp
+  Process/Launch.cpp
+  String/Encoding.cpp
+  String/Format.cpp
+  String/Replace.cpp
+  String/Trim.cpp
+  Utility.cpp
+)
+
+target_compile_definitions(Utility PUBLIC BBDOWN_DLL=1)
+
+target_include_directories(Utility PUBLIC
+  ${CMAKE_SOURCE_DIR}/include
+  ${OPENSSL_ROOT_DIR}/include
+)
+
+target_link_libraries(Utility
+  ${OPENSSL_CRYPTO_LIBRARIES}
+  nlohmann_json
+  spdlog
+)
+
+install(TARGETS Utility)
