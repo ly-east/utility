@@ -2,16 +2,13 @@
 #include "spdlog/spdlog.h"
 #include <cassert>
 #include <exception>
-#include <filesystem>
 #include <fstream>
 
 namespace utility {
 namespace json {
-JsonPtrTy loadJsonFile(const std::string &path) {
-  std::filesystem::path p{path};
-
-  if (!std::filesystem::exists(p)) {
-    spdlog::error("loadJsonFile: invalid path {}", path);
+JsonPtrTy loadJsonFile(const std::filesystem::path &path) {
+  if (!std::filesystem::exists(path)) {
+    spdlog::error("loadJsonFile: invalid path {}", path.string());
     return nullptr;
   }
 
