@@ -16,11 +16,6 @@ add_library(Utility SHARED
   Utility.cpp
 )
 
-add_dependencies(Utility
-  handler
-  handler_console
-)
-
 target_compile_definitions(Utility PUBLIC BBDOWN_DLL=1)
 
 target_include_directories(Utility PUBLIC
