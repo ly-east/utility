@@ -1,4 +1,5 @@
 add_library(Utility SHARED
+  Crash/CrashPad.cpp
   Crypto/Hash.cpp
   FileSystem/Filesystem.cpp
   Json/AriaRpc.cpp
@@ -15,17 +16,22 @@ add_library(Utility SHARED
   Utility.cpp
 )
 
+add_dependencies(Utility
+  handler
+  handler_console
+)
+
 target_compile_definitions(Utility PUBLIC BBDOWN_DLL=1)
 
 target_include_directories(Utility PUBLIC
   ${CMAKE_SOURCE_DIR}/include
   ${OPENSSL_ROOT_DIR}/include
+  ${CMAKE_SOURCE_DIR}/third-party/crashpad
 )
 
 target_link_libraries(Utility
   ${OPENSSL_CRYPTO_LIBRARIES}
+  client
   nlohmann_json
   spdlog
 )
-
-install(TARGETS Utility)
