@@ -30,3 +30,5 @@ target_link_libraries(Utility
   nlohmann_json
   spdlog
 )
+
+install(TARGETS Utility)
