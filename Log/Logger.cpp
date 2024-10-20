@@ -7,6 +7,8 @@
 namespace utility {
 namespace log {
 bool setFileLogger(const std::string &filename) {
+  // save log to seperated folder
+
   std::filesystem::path log_path{std::filesystem::current_path().append("log")};
   if (!std::filesystem::exists(log_path))
     std::filesystem::create_directories(log_path);
