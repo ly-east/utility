@@ -9,6 +9,7 @@ add_library(Utility SHARED
   Network/Socket.cpp
   Network/UserAgent.cpp
   Process/Launch.cpp
+  Raii/Raii.cpp
   String/Encoding.cpp
   String/Format.cpp
   String/Replace.cpp
