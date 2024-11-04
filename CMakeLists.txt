@@ -1,6 +1,7 @@
 add_library(Utility SHARED
   Crash/CrashPad.cpp
   Crypto/Hash.cpp
+  FileSystem/DumpFile.cpp
   FileSystem/Filesystem.cpp
   Json/AriaRpc.cpp
   Json/Json.cpp
