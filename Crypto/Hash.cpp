@@ -1,6 +1,6 @@
 #include "Utility/Crypto/Hash.h"
 #include "Utility/String/Format.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 
 #define USE_MD5_LEGACY 0
 
@@ -26,24 +26,24 @@ static std::string getMD5Modern(const std::string &str) {
 
   EVP_MD_CTX *ctx = EVP_MD_CTX_new();
   if (!ctx) {
-    spdlog::error("getMD5Modern: EVP_MD_CTX_new failed");
+    ulg.error("getMD5Modern: EVP_MD_CTX_new failed");
     return "";
   }
 
   bool is_succeeded = false;
   do {
     if (!EVP_DigestInit_ex(ctx, EVP_md5(), nullptr)) {
-      spdlog::error("EVP_DigestInit_ex failed");
+      ulg.error("EVP_DigestInit_ex failed");
       break;
     }
 
     if (!EVP_DigestUpdate(ctx, str.data(), str.size())) {
-      spdlog::error("EVP_DigestUpdate failed");
+      ulg.error("EVP_DigestUpdate failed");
       break;
     }
 
     if (!EVP_DigestFinal_ex(ctx, hash, &hash_len)) {
-      spdlog::error("EVP_DigestFinal_ex failed");
+      ulg.error("EVP_DigestFinal_ex failed");
       break;
     }
 
@@ -61,7 +61,7 @@ namespace utility {
 namespace crypto {
 std::string getMD5(const std::string &str) {
   if (str.empty()) {
-    spdlog::error("getMD5: empty string?");
+    ulg.error("getMD5: empty string?");
     return std::string();
   }
 

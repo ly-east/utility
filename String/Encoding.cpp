@@ -1,5 +1,5 @@
 #include "Utility/String/Encoding.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 #include <codecvt>
 #include <locale>
 #include <memory>
@@ -21,7 +21,7 @@ std::string unicodeToUTF8(const std::wstring &wstr) {
     std::wstring_convert<std::codecvt_utf8<wchar_t>> wcv;
     ret = wcv.to_bytes(wstr);
   } catch (const std::exception &e) {
-    spdlog::error("unicodeToUTF8: {}", e.what());
+    ulg.error("unicodeToUTF8: {}", e.what());
   }
 
   return ret;
@@ -34,7 +34,7 @@ std::wstring utf8ToUnicode(const std::string &str) {
     std::wstring_convert<std::codecvt_utf8<wchar_t>> wcv;
     ret = wcv.from_bytes(str);
   } catch (const std::exception &e) {
-    spdlog::error("utf8ToUnicode: {}", e.what());
+    ulg.error("utf8ToUnicode: {}", e.what());
   }
 
   return ret;

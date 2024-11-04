@@ -1,6 +1,6 @@
 #include "Utility/Log/Logger.h"
 #include "spdlog/sinks/rotating_file_sink.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 #include <filesystem>
 #include <string>
 
@@ -16,17 +16,17 @@ bool setFileLogger(const std::string &filename) {
 
   try {
     // create a file rotating logger with 4MB size max and 3 rotated files
-    auto logger = spdlog::rotating_logger_mt("logger", log_path.string(),
-                                             1024 * 1024 * 4, 3);
+    auto logger =
+        ulg.rotating_logger_mt("logger", log_path.string(), 1024 * 1024 * 4, 3);
 
     // [Y-M-D H-M-S.e][thread ID][log level]content
     logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%t][%l]%v");
-    logger->set_level(spdlog::level::debug);
-    logger->flush_on(spdlog::level::err);
+    logger->set_level(ulg.level::debug);
+    logger->flush_on(ulg.level::err);
 
-    spdlog::set_default_logger(logger);
-  } catch (const spdlog::spdlog_ex &ex) {
-    spdlog::error("Log init failed: {}", ex.what());
+    ulg.set_default_logger(logger);
+  } catch (const ulg.spdlog_ex &ex) {
+    ulg.error("Log init failed: {}", ex.what());
     return false;
   }
 

@@ -1,5 +1,5 @@
 #include "Utility/FileSystem/DumpFile.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 #include <cassert>
 
 namespace utility {
@@ -10,7 +10,7 @@ bool DumpFile(const std::string &file_name, const std::string &content,
 
   std::ofstream file{file_name, mode};
   if (!file.is_open()) {
-    spdlog::error("failed to write {}", file_name);
+    ulg.error("failed to write {}", file_name);
     return false;
   }
 

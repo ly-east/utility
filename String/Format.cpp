@@ -1,5 +1,5 @@
 #include "Utility/String/Format.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 #include <iomanip>
 #include <sstream>
 
@@ -7,7 +7,7 @@ namespace utility {
 namespace string {
 std::string binToHex(const unsigned char *data, size_t len) {
   if (!data || !len) {
-    spdlog::error("binToHex: invalid parameter");
+    ulg.error("binToHex: invalid parameter");
     return std::string();
   }
 

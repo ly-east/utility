@@ -1,5 +1,5 @@
 #include "Utility/Json/Json.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 #include <cassert>
 #include <exception>
 #include <fstream>
@@ -8,7 +8,7 @@ namespace utility {
 namespace json {
 JsonPtrTy loadJsonFile(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
-    spdlog::error("loadJsonFile: invalid path {}", path.string());
+    ulg.error("loadJsonFile: invalid path {}", path.string());
     return nullptr;
   }
 
@@ -19,14 +19,14 @@ JsonPtrTy loadJsonFile(const std::filesystem::path &path) {
         std::make_unique<nlohmann::json>(nlohmann::json::parse(json_file));
     return json;
   } catch (const std::exception &e) {
-    spdlog::error("loadJsonFile: {}", e.what());
+    ulg.error("loadJsonFile: {}", e.what());
     return nullptr;
   }
 }
 
 JsonPtrTy parseJsonString(const std::string &json_str) {
   if (json_str.empty() || json_str.size() < 2) {
-    spdlog::error("parseJsonString: json_str is empty or too short");
+    ulg.error("parseJsonString: json_str is empty or too short");
     return nullptr;
   }
 
@@ -35,7 +35,7 @@ JsonPtrTy parseJsonString(const std::string &json_str) {
         std::make_unique<nlohmann::json>(nlohmann::json::parse(json_str));
     return std::move(json);
   } catch (const std::exception &e) {
-    spdlog::error("parseJsonString: {}", e.what());
+    ulg.error("parseJsonString: {}", e.what());
     return nullptr;
   }
 }
@@ -64,8 +64,8 @@ bool getOptionalField(const nlohmann::json &json_l, const std::string &field_l,
   r = optionalFieldJson(json_r, field_r);
 
   if (l.is_null() && r.is_null()) {
-    spdlog::error("getOptionalField: neither {} nor {} are existed", field_l,
-                  field_r);
+    ulg.error("getOptionalField: neither {} nor {} are existed", field_l,
+              field_r);
     return false;
   }
 
