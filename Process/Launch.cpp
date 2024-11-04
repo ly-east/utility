@@ -1,7 +1,7 @@
 #include "Utility/Process/Launch.h"
 #include "Utility/String/Encoding.h"
 #include "Utility/String/Trim.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 #include <cassert>
 #include <cstdlib>
 #include <exception>
@@ -34,7 +34,7 @@ std::string locateProgramWindows(const std::string &name) {
   size_t env_size = 0;
   auto error = _wgetenv_s(&env_size, cmd_path, L"ComSpec");
   if (error) {
-    spdlog::error("getenv_s failed: {}", error);
+    ulg.error("getenv_s failed: {}", error);
     return path;
   }
 
@@ -47,7 +47,7 @@ std::string locateProgramWindows(const std::string &name) {
   try {
     buf = std::make_unique<wchar_t[]>(buf_size);
   } catch (const std::exception &e) {
-    spdlog::error("make_unique failed: {}", e.what());
+    ulg.error("make_unique failed: {}", e.what());
     return path;
   }
 
@@ -60,7 +60,7 @@ std::string locateProgramWindows(const std::string &name) {
       [&path](std::string &&output) { path.append(output); });
 
   if (exit_code) {
-    spdlog::error("cmd exits with code {}", exit_code);
+    ulg.error("cmd exits with code {}", exit_code);
     path.clear();
   }
 
@@ -77,7 +77,7 @@ int launchHiddenProgramWindows(CrtFuncTy caller,
 
   // create the annonymous pipe
   if (!CreatePipe(&hChildStd_OUT_Rd, &hChildStd_OUT_Wr, &attr, 0)) {
-    spdlog::error("CreatePipe failed ({})", GetLastError());
+    ulg.error("CreatePipe failed ({})", GetLastError());
     return 1;
   }
 
@@ -88,7 +88,7 @@ int launchHiddenProgramWindows(CrtFuncTy caller,
 
   // create subprocess
   if (!caller(hChildStd_OUT_Wr, pi)) {
-    spdlog::error("CreateProcess failed ({})", GetLastError());
+    ulg.error("CreateProcess failed ({})", GetLastError());
     CloseHandle(hChildStd_OUT_Rd);
     CloseHandle(hChildStd_OUT_Wr);
 
@@ -97,7 +97,7 @@ int launchHiddenProgramWindows(CrtFuncTy caller,
     return 1;
   }
 
-  spdlog::debug("process {} launched", pi.dwProcessId);
+  ulg.debug("process {} launched", pi.dwProcessId);
   if (p)
     p->set_value(true);
 
@@ -124,9 +124,9 @@ int launchHiddenProgramWindows(CrtFuncTy caller,
 
   DWORD exit_code = 0;
   if (!GetExitCodeProcess(pi.hProcess, &exit_code))
-    spdlog::error("GetExitCodeProcess failed ({})", GetLastError());
+    ulg.error("GetExitCodeProcess failed ({})", GetLastError());
   else
-    spdlog::debug("Process exited with code: {}", exit_code);
+    ulg.debug("Process exited with code: {}", exit_code);
 
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
@@ -144,7 +144,7 @@ std::string locateProgramLinux(const std::string &name) {
       argv[0], argv, [&path](std::string &&output) { path.append(output); });
 
   if (exit_code) {
-    spdlog::error("cmd exits with code {}", exit_code);
+    ulg.error("cmd exits with code {}", exit_code);
     path.clear();
   }
 
@@ -158,14 +158,14 @@ int launchHiddenProgramLinux(const std::string &path, char *arg,
 
   // create pipe
   if (pipe(pipefd) == -1) {
-    spdlog::error("launchHiddenProgram: %s", strerror("pipe"));
+    ulg.error("launchHiddenProgram: %s", strerror("pipe"));
     return 1;
   }
 
   // create subprocess
   pid = fork();
   if (pid == -1) {
-    spdlog::error("launchHiddenProgram: %s", strerror("fork"));
+    ulg.error("launchHiddenProgram: %s", strerror("fork"));
     return 1;
   }
 
@@ -183,13 +183,13 @@ int launchHiddenProgramLinux(const std::string &path, char *arg,
     execvp(path.c_str(), (char *const *)arg);
 
     // error occurred if it returns
-    spdlog::error("launchHiddenProgram: %s", strerror("execvp"));
+    ulg.error("launchHiddenProgram: %s", strerror("execvp"));
     return 1;
   }
 
   // parent process
 
-  spdlog::debug("process {} launched", (int)pid);
+  ulg.debug("process {} launched", (int)pid);
   if (p)
     p->set_value(true);
 
@@ -209,7 +209,7 @@ int launchHiddenProgramLinux(const std::string &path, char *arg,
   }
 
   if (numRead == -1)
-    spdlog::error("launchHiddenProgram: %s", strerror("read"));
+    ulg.error("launchHiddenProgram: %s", strerror("read"));
 
   // wait for exit status
 
@@ -220,7 +220,7 @@ int launchHiddenProgramLinux(const std::string &path, char *arg,
     exit_code = WEXITSTATUS(status); // normal exit
   else if (WIFSIGNALED(status)) {
     exit_code = WTERMSIG(status);
-    spdlog::error("launchHiddenProgram: child killed by signal. %d", exit_code);
+    ulg.error("launchHiddenProgram: child killed by signal. %d", exit_code);
   }
 
   close(pipefd[0]);

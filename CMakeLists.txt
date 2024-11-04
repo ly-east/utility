@@ -5,7 +5,6 @@ add_library(Utility SHARED
   FileSystem/Filesystem.cpp
   Json/AriaRpc.cpp
   Json/Json.cpp
-  Log/Logger.cpp
   Math/Random.cpp
   Network/Socket.cpp
   Network/UserAgent.cpp
@@ -24,13 +23,14 @@ target_include_directories(Utility PUBLIC
   ${CMAKE_SOURCE_DIR}/include
   ${OPENSSL_ROOT_DIR}/include
   ${CMAKE_SOURCE_DIR}/third-party/crashpad
+  ${CMAKE_SOURCE_DIR}/third-party/ulog/include
 )
 
 target_link_libraries(Utility
   ${OPENSSL_CRYPTO_LIBRARIES}
   client
   nlohmann_json
-  spdlog
+  ulog
 )
 
 install(TARGETS Utility)

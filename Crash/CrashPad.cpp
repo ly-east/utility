@@ -3,7 +3,7 @@
 #include "client/crashpad_client.h"
 #include "client/crashpad_info.h"
 #include "client/settings.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 #include <cstdlib>
 #include <filesystem>
 #include <map>
@@ -70,7 +70,7 @@ bool setHandler(bool is_console) {
   auto current_path = std::filesystem::current_path();
   auto handler_path = std::filesystem::path{current_path} / handler_name;
   if (!std::filesystem::exists(handler_path)) {
-    spdlog::error("setHandler: {} doesn't exist", handler_path.string());
+    ulg.error("setHandler: {} doesn't exist", handler_path.string());
     return false;
   }
 

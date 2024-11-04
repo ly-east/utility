@@ -1,6 +1,6 @@
 #include "Utility/FileSystem/Filesystem.h"
 #include "Utility/String/Encoding.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 #include <exception>
 #include <functional>
 #include <memory>
@@ -34,14 +34,14 @@ void createDirectory(const std::filesystem::path &p) {
 
 bool remove(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
-    spdlog::warn("cannot remove a none-existed path {}", path.string());
+    ulg.warn("cannot remove a none-existed path {}", path.string());
     return false;
   }
 
   try {
     std::filesystem::remove(path);
   } catch (const std::exception &e) {
-    spdlog::error("remove: {}", e.what());
+    ulg.error("remove: {}", e.what());
     return false;
   }
 
@@ -56,7 +56,7 @@ bool remove(const PathListTy &path) {
 
 bool removeAll(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
-    spdlog::warn("cannot remove a none-existed path {}", path.string());
+    ulg.warn("cannot remove a none-existed path {}", path.string());
     return false;
   }
 
@@ -71,14 +71,15 @@ bool removeAll(const PathListTy &path) {
 
 bool select(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
-    spdlog::error("select: path doesn't exist. {}", path.string());
+    ulg.error("select: path doesn't exist. {}", path.string());
     return false;
   }
 
 #if defined(_WIN32)
   const wchar_t select[] = L" /select,";
   const std::u16string filePath{path.u16string()};
-  const size_t buf_size = wcslen(select) + filePath.size() + 4 * sizeof(wchar_t);
+  const size_t buf_size =
+      wcslen(select) + filePath.size() + 4 * sizeof(wchar_t);
 
   try {
     std::unique_ptr<wchar_t[]> buf = std::make_unique<wchar_t[]>(buf_size);
@@ -92,11 +93,11 @@ bool select(const std::filesystem::path &path) {
                                     NULL, SW_SHOWDEFAULT);
 
     if (!retVal || retVal <= 32) {
-      spdlog::error("select: ShellExecuteW error with return value {}", retVal);
+      ulg.error("select: ShellExecuteW error with return value {}", retVal);
       return false;
     }
   } catch (const std::exception &e) {
-    spdlog::error("select: {}", e.what());
+    ulg.error("select: {}", e.what());
     return false;
   }
 

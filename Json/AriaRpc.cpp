@@ -2,7 +2,7 @@
 #include "Type/AriaStatus.h"
 #include "Utility/Json/Json.h"
 #include "nlohmann/json.hpp"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 #include <cstdint>
 #include <exception>
 #include <functional>
@@ -48,7 +48,7 @@ bool parseRpcResponse(const std::string &response, RpcRespRecvTy func) {
   nlohmann::json result;
   const std::string error{"error"};
   if (!utility::json::getOptionalField(*resp, "result", error, result)) {
-    spdlog::error("parseRpcResponse: getOptionalField failed");
+    ulg.error("parseRpcResponse: getOptionalField failed");
     return false;
   }
 
@@ -60,10 +60,10 @@ bool parseRpcResponse(const std::string &response, RpcRespRecvTy func) {
       code = result["code"].template get<decltype(code)>();
       message = result["message"].template get<decltype(message)>();
     } catch (const std::exception &e) {
-      spdlog::error("parseRpcResponse: {}", e.what());
+      ulg.error("parseRpcResponse: {}", e.what());
     }
 
-    spdlog::error("Aria2 returns error({}): {}", code, message);
+    ulg.error("Aria2 returns error({}): {}", code, message);
     return false;
   }
 
@@ -103,7 +103,7 @@ bool getRpcResponseGid(const std::string &response, std::string &gid) {
     try {
       gid = result.template get<std::string>();
     } catch (const std::exception &e) {
-      spdlog::error("getRpcResponseGid failed: {}", e.what());
+      ulg.error("getRpcResponseGid failed: {}", e.what());
       return false;
     }
 
@@ -137,12 +137,12 @@ bool getRpcResponseStatus(const std::string &response,
       else if ("error" == task_status)
         status.status = bbdown::TaskStatus::ERRoR;
       else {
-        spdlog::warn("unknown task status {}", task_status);
+        ulg.warn("unknown task status {}", task_status);
         status.status = bbdown::TaskStatus::UNKNOWN;
       }
 
     } catch (const std::exception &e) {
-      spdlog::error("getRpcResponseStatus failed: {}", e.what());
+      ulg.error("getRpcResponseStatus failed: {}", e.what());
       return false;
     }
 

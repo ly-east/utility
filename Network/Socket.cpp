@@ -1,5 +1,5 @@
 #include "Utility/Network/Socket.h"
-#include "spdlog/spdlog.h"
+#include "ulog/ulog.h"
 
 #if defined(_WIN32)
 #include <WinSock2.h>
@@ -18,7 +18,7 @@ uint16_t getAvailablePortWindows(uint16_t port_begin, int type) {
   WSADATA wsaData;
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
   if (iResult != 0) {
-    spdlog::error("WSAStartup failed with error: {}", iResult);
+    ulg.error("WSAStartup failed with error: {}", iResult);
     return UINT16_MAX;
   }
 
@@ -29,7 +29,7 @@ uint16_t getAvailablePortWindows(uint16_t port_begin, int type) {
   for (uint16_t portnum = port_begin; portnum < UINT16_MAX; ++portnum) {
     sock = socket(AF_INET, type, 0);
     if (sock == INVALID_SOCKET) {
-      spdlog::error("socket() failed with error: {}", WSAGetLastError());
+      ulg.error("socket() failed with error: {}", WSAGetLastError());
       break;
     }
 
@@ -46,7 +46,7 @@ uint16_t getAvailablePortWindows(uint16_t port_begin, int type) {
         sock = INVALID_SOCKET;
         continue;
       } else {
-        spdlog::error("bind() failed with error: {}", error);
+        ulg.error("bind() failed with error: {}", error);
         break;
       }
     } else {
