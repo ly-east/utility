@@ -2,7 +2,7 @@
 #include "spdlog/spdlog.h"
 #include <cassert>
 
-namespace bbdown {
+namespace utility {
 namespace filesystem {
 bool DumpFile(const std::string &file_name, const std::string &content,
               const std::ios_base::openmode mode) {
@@ -21,4 +21,4 @@ bool DumpFile(const std::string &file_name, const std::string &content,
   return true;
 }
 } // namespace filesystem
-} // namespace bbdown
+} // namespace utility
