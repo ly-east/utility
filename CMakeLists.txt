@@ -34,3 +34,7 @@ target_link_libraries(Utility
 )
 
 install(TARGETS Utility)
+
+# TODO:
+# move crashpad to ucrash(seperated dll)
+# move cpp-httplib to uhttp(ditto)
