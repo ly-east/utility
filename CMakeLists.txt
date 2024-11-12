@@ -1,5 +1,4 @@
 add_library(Utility SHARED
-  Crash/CrashPad.cpp
   Crypto/Hash.cpp
   FileSystem/DumpFile.cpp
   FileSystem/Filesystem.cpp
@@ -36,5 +35,4 @@ target_link_libraries(Utility
 install(TARGETS Utility)
 
 # TODO:
-# move crashpad to ucrash(seperated dll)
 # move cpp-httplib to uhttp(ditto)
