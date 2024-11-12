@@ -128,7 +128,9 @@ bool getRpcResponseStatus(const std::string &response,
       status.path = result["files"].front()["path"].get<std::string>();
 
       std::string task_status{result["status"].get<std::string>()};
-      if ("active" == task_status)
+      if ("waiting" == task_status)
+        status.status = bbdown::TaskStatus::WAITING;
+      else if ("active" == task_status)
         status.status = bbdown::TaskStatus::ACTIVE;
       else if ("complete" == task_status)
         status.status = bbdown::TaskStatus::COMPLETE;
