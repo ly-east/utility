@@ -34,7 +34,7 @@ void createDirectory(const std::filesystem::path &p) {
 
 bool remove(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
-    ulg.warn("cannot remove a none-existed path {}", path.string());
+    ulg.warn("path doesn't exist. {}", path.string());
     return false;
   }
 
