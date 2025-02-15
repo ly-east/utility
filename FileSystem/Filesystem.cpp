@@ -1,5 +1,4 @@
 #include "Utility/FileSystem/Filesystem.h"
-#include "Utility/String/Encoding.h"
 #include "ulog/ulog.h"
 #include <exception>
 #include <functional>

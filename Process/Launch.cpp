@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <iostream>
 #include <memory>
 
 #if defined(_WIN32)
