@@ -34,7 +34,7 @@ void createDirectory(const std::filesystem::path &p) {
 
 bool remove(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
-    ulg.warn("cannot remove a none-existed path {}", path.string());
+    ulg.warn("path doesn't exist. {}", path.string());
     return false;
   }
 
@@ -89,8 +89,8 @@ bool select(const std::filesystem::path &path) {
 
     // MSDN document says we can cast the HINSTANCE return type to an INT_PTR.
     // https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutew
-    int retVal = (int)ShellExecuteW(NULL, L"open", L"explorer.exe", buf_ptr,
-                                    NULL, SW_SHOWDEFAULT);
+    auto retVal = (INT_PTR)ShellExecuteW(NULL, L"open", L"explorer.exe",
+                                         buf_ptr, NULL, SW_SHOWDEFAULT);
 
     if (!retVal || retVal <= 32) {
       ulg.error("select: ShellExecuteW error with return value {}", retVal);

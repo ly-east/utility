@@ -52,8 +52,8 @@ std::string locateProgramWindows(const std::string &name) {
   }
 
   wchar_t *const buf_ptr = buf.get();
-  _snwprintf_s(buf_ptr, buf_size * sizeof(wchar_t), buf_size,
-               L"/c \"where %s\"", (wchar_t *)wide_name.c_str());
+  _snwprintf_s(buf_ptr, buf_size, buf_size, L"/c \"where %s\"",
+               (wchar_t *)wide_name.c_str());
 
   int exit_code = utility::process::launchHiddenProgram(
       cmd_path, buf_ptr,
