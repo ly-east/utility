@@ -78,15 +78,15 @@ bool select(const std::filesystem::path &path) {
   const wchar_t select[] = L" /select,";
   const std::u16string filePath{path.u16string()};
   const size_t buf_size =
-      wcslen(select) + filePath.size() + 4 * sizeof(wchar_t);
+      (wcslen(select) + filePath.size() * 2 + 4) * sizeof(wchar_t);
 
   try {
     std::unique_ptr<wchar_t[]> buf = std::make_unique<wchar_t[]>(buf_size);
     wchar_t *const buf_ptr = buf.get();
-    _snwprintf_s(buf_ptr, buf_size * sizeof(wchar_t), buf_size, L"%s\"%s\"",
-                 select, (wchar_t *)filePath.c_str());
+    _snwprintf_s(buf_ptr, buf_size, buf_size, L"%s\"%s\"", select,
+                 (wchar_t *)filePath.c_str());
 
-    // MSDN document says we can cast the HINSTANCE return type to an INT_PTR.
+    // MSDN document allows to cast the HINSTANCE return type to an INT_PTR.
     // https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutew
     auto retVal = (INT_PTR)ShellExecuteW(NULL, L"open", L"explorer.exe",
                                          buf_ptr, NULL, SW_SHOWDEFAULT);
