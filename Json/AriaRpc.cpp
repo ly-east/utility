@@ -137,7 +137,7 @@ bool getRpcResponseStatus(const std::string &response,
       else if ("paused" == task_status)
         status.status = bbdown::TaskStatus::PAUSED;
       else if ("error" == task_status)
-        status.status = bbdown::TaskStatus::ERRoR;
+        status.status = bbdown::TaskStatus::FAILED;
       else {
         ulg.warn("unknown task status {}", task_status);
         status.status = bbdown::TaskStatus::UNKNOWN;
