@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <iostream>
 #include <memory>
 
 #if defined(_WIN32)
@@ -22,53 +21,8 @@ using CrtFuncTy = std::function<bool(HANDLE, PROCESS_INFORMATION &)>;
 
 namespace {
 #if defined(_WIN32)
-std::string locateProgramWindows(const std::string &name) {
-  using namespace utility::string;
-
-  std::u16string wide_name{utf8ToUtf16(ansiToUtf8(name))};
-  std::string path;
-
-  // locate cmd
-
-  wchar_t cmd_path[64]{};
-  size_t env_size = 0;
-  auto error = _wgetenv_s(&env_size, cmd_path, L"ComSpec");
-  if (error) {
-    ulg.error("getenv_s failed: {}", error);
-    return path;
-  }
-
-  // command line
-
-  const unsigned buf_size =
-      std::max<unsigned>(64, (unsigned)wide_name.size() + 16);
-  std::unique_ptr<wchar_t[]> buf;
-
-  try {
-    buf = std::make_unique<wchar_t[]>(buf_size);
-  } catch (const std::exception &e) {
-    ulg.error("make_unique failed: {}", e.what());
-    return path;
-  }
-
-  wchar_t *const buf_ptr = buf.get();
-  _snwprintf_s(buf_ptr, buf_size, buf_size, L"/c \"where %s\"",
-               (wchar_t *)wide_name.c_str());
-
-  int exit_code = utility::process::launchHiddenProgram(
-      cmd_path, buf_ptr,
-      [&path](std::string &&output) { path.append(output); });
-
-  if (exit_code) {
-    ulg.error("cmd exits with code {}", exit_code);
-    path.clear();
-  }
-
-  return path;
-}
-
 int launchHiddenProgramWindows(CrtFuncTy caller,
-                               utility::process::RdtCbFuncTy func,
+                               utility::process::RdtCbFunc func,
                                std::promise<bool> *p) {
   HANDLE hChildStd_OUT_Rd = NULL;
   HANDLE hChildStd_OUT_Wr = NULL;
@@ -136,23 +90,104 @@ int launchHiddenProgramWindows(CrtFuncTy caller,
 }
 
 #elif defined(__linux__)
-std::string locateProgramLinux(const std::string &name) {
-  const char *argv[] = {"which", name.c_str(), nullptr};
+
+#endif
+} // namespace
+
+namespace utility {
+namespace process {
+Str getExecutableFilePath(const Str &name) {
+  std::filesystem::path p{std::filesystem::current_path()};
+
+  try {
+    p.append(name);
+
+#if defined(_WIN32)
+    if (!p.has_extension())
+      p.replace_extension(".exe");
+#endif
+  } catch (const std::exception &e) {
+    ulg.error("getExecutableFilePath: {}", e.what());
+    return {};
+  }
+
+  // Program at the same path of BBDown is preferred to use
+  if (std::filesystem::exists(p) && std::filesystem::is_regular_file(p))
+#if defined(_WIN32)
+    return p.wstring();
+#elif defined(__linux__)
+    return p.string();
+#endif
+
+  return locateProgram(name);
+}
+
+#if defined(_WIN32)
+
+int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
+                        std::promise<bool> *p) {
+  auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
+    STARTUPINFOW si{sizeof(STARTUPINFO)};
+
+    si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.hStdError = writer; // stderr is redirected also
+    si.hStdOutput = writer;
+    si.wShowWindow = SW_HIDE;
+
+    return CreateProcessW(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL,
+                          &si, &pi);
+  };
+
+  return ::launchHiddenProgramWindows(caller, func, p);
+}
+
+Str locateProgram(const Str &name) {
+  using namespace utility::string;
+
   std::string path;
 
+  // locate cmd
+
+  wchar_t cmd_path[64]{};
+  size_t env_size = 0;
+  auto error = _wgetenv_s(&env_size, cmd_path, L"ComSpec");
+  if (error) {
+    ulg.error("wgetenv_s failed: {}", error);
+    return {};
+  }
+
+  // command line
+
+  const unsigned buf_size = std::max<unsigned>(64, (unsigned)name.size() + 16);
+  std::unique_ptr<wchar_t[]> buf;
+
+  try {
+    buf = std::make_unique<wchar_t[]>(buf_size);
+  } catch (const std::exception &e) {
+    ulg.error("make_unique failed: {}", e.what());
+    return {};
+  }
+
+  wchar_t *const buf_ptr = buf.get();
+  _snwprintf_s(buf_ptr, buf_size, buf_size, L"/c \"where %s\"", name.c_str());
+
   int exit_code = utility::process::launchHiddenProgram(
-      argv[0], argv, [&path](std::string &&output) { path.append(output); });
+      cmd_path, buf_ptr,
+      [&path](std::string &&output) { path.append(output); });
 
   if (exit_code) {
     ulg.error("cmd exits with code {}", exit_code);
     path.clear();
   }
 
-  return path;
+  return ansiToUnicode(path);
 }
 
-int launchHiddenProgramLinux(const std::string &path, char *arg,
-                             RdtCbFuncTy func, std::promise<bool> *p) {
+#elif defined(__linux__)
+
+int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
+                        std::promise<bool> *p) {
+  // TODO: split args?
   int pipefd[2];
   pid_t pid = 0;
 
@@ -227,79 +262,21 @@ int launchHiddenProgramLinux(const std::string &path, char *arg,
 
   return exit_code;
 }
-#endif
-} // namespace
 
-namespace utility {
-namespace process {
-std::string getExecutableFilePath(const std::string &name) {
-  std::filesystem::path p{std::filesystem::current_path()};
-  p.append(name);
+Str locateProgramLinux(const Str &name) {
+  const char *argv[] = {"which", name.c_str(), nullptr};
+  std::string path;
 
-#if defined(_WIN32)
-  if (!p.has_extension())
-    p.replace_extension(".exe");
-#endif
+  int exit_code = utility::process::launchHiddenProgram(
+      argv[0], argv, [&path](std::string &&output) { path.append(output); });
 
-  // Program at the same path of BBDown is preferred to use
-  if (std::filesystem::exists(p) && std::filesystem::is_regular_file(p))
-    return p.string();
+  if (exit_code) {
+    ulg.error("cmd exits with code {}", exit_code);
+    path.clear();
+  }
 
-  return locateProgram(name);
-}
-
-int launchHiddenProgram(const std::string &path, char *arg, RdtCbFuncTy func,
-                        std::promise<bool> *p) {
-#if defined(_WIN32)
-  auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
-    STARTUPINFOA si{sizeof(STARTUPINFO)};
-
-    si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-    si.hStdError = writer; // stderr is redirected also
-    si.hStdOutput = writer;
-    si.wShowWindow = SW_HIDE;
-
-    return CreateProcessA(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL,
-                          &si, &pi);
-  };
-
-  return ::launchHiddenProgramWindows(caller, func, p);
-#elif defined(__linux__)
-  // TODO: split args?
-  return ::launchHiddenProgramLinux(path, arg, func, p);
-#endif
-}
-
-#if defined(_WIN32)
-int launchHiddenProgram(const std::wstring &path, wchar_t *arg,
-                        utility::process::RdtCbFuncTy func,
-                        std::promise<bool> *p) {
-  auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
-    STARTUPINFOW si{sizeof(STARTUPINFO)};
-
-    si.dwFlags = si.dwFlags | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-    si.hStdError = writer; // stderr is redirected also
-    si.hStdOutput = writer;
-    si.wShowWindow = SW_HIDE;
-
-    return CreateProcessW(path.c_str(), arg, NULL, NULL, TRUE, 0, NULL, NULL,
-                          &si, &pi);
-  };
-
-  return ::launchHiddenProgramWindows(caller, func, p);
+  return path;
 }
 #endif
-
-std::string locateProgram(const std::string &name) {
-#if defined(_WIN32)
-  return locateProgramWindows(name);
-#elif defined(__linux__)
-  return locateProgramLinux(name);
-#endif
-}
-
-int waitForExitCode(const std::string &path, char *arg) {
-  return launchHiddenProgram(path, arg, [](std::string &&) {});
-}
 } // namespace process
 } // namespace utility

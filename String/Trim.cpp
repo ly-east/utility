@@ -2,12 +2,14 @@
 
 namespace {
 // all types of possible spaces to remove
-static std::string toRemove = " \n\r\t\f\v";
+constexpr const char *removedBlankChar = " \n\r\t\f\v";
 } // namespace
 
 namespace utility {
 namespace string {
 std::string leftTrim(const std::string &s) {
+  static std::string toRemove{removedBlankChar};
+
   // finding the index just after white spaces
   auto start = s.find_first_not_of(toRemove);
 
@@ -16,6 +18,8 @@ std::string leftTrim(const std::string &s) {
 }
 
 std::string rightTrim(const std::string &s) {
+  static std::string toRemove{removedBlankChar};
+
   // finding the index just before white spaces
   auto end = s.find_last_not_of(toRemove);
 
