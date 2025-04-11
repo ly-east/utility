@@ -1,4 +1,5 @@
 #include "Utility/FileSystem/Filesystem.h"
+#include "Utility/String/Encoding.h"
 #include "ulog/ulog.h"
 #include <exception>
 #include <functional>
@@ -70,7 +71,13 @@ bool removeAll(const PathListTy &path) {
 
 bool select(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
-    ulg.error("select: path doesn't exist. {}", path.string());
+    ulg.error("select: path doesn't exist. {}",
+#if defined(_WIN32)
+              utility::string::unicodeToUTF8(path.wstring())
+#elif defined(__linux__)
+              path.string()
+#endif
+    );
     return false;
   }
 
