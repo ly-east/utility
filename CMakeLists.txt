@@ -11,6 +11,7 @@ add_library(Utility SHARED
   Raii/Raii.cpp
   String/Encoding.cpp
   String/Format.cpp
+  String/Match.cpp
   String/Replace.cpp
   String/Trim.cpp
   Utility.cpp
