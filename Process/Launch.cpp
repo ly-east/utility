@@ -96,7 +96,7 @@ int launchHiddenProgramWindows(CrtFuncTy caller,
 
 namespace utility {
 namespace process {
-Str getExecutableFilePath(const Str &name) {
+utility::string::Str getExecutableFilePath(const utility::string::Str &name) {
   std::filesystem::path p{std::filesystem::current_path()};
 
   try {
@@ -124,7 +124,8 @@ Str getExecutableFilePath(const Str &name) {
 
 #if defined(_WIN32)
 
-int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
+int launchHiddenProgram(const utility::string::Str &path,
+                        utility::string::Char *arg, RdtCbFunc func,
                         std::promise<bool> *p) {
   auto caller = [path, arg](HANDLE writer, PROCESS_INFORMATION &pi) -> bool {
     STARTUPINFOW si{sizeof(STARTUPINFO)};
@@ -141,7 +142,7 @@ int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
   return ::launchHiddenProgramWindows(caller, func, p);
 }
 
-Str locateProgram(const Str &name) {
+utility::string::Str locateProgram(const utility::string::Str &name) {
   using namespace utility::string;
 
   std::string path;
