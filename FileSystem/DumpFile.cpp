@@ -1,6 +1,7 @@
 #include "Utility/FileSystem/DumpFile.h"
 #include "ulog/ulog.h"
 #include <cassert>
+#include <filesystem>
 
 namespace utility {
 namespace filesystem {
@@ -19,6 +20,21 @@ bool DumpFile(const std::string &file_name, const std::string &content,
   file.close();
 
   return true;
+}
+
+bool CentralizedDump(const std::string &folder, const std::string &filename,
+                     const std::string &content) {
+  // create folder if it doesn't exist
+  auto path = std::filesystem::current_path().append(folder);
+  if (!std::filesystem::exists(path))
+    std::filesystem::create_directory(path);
+  else if (!std::filesystem::is_directory(path)) {
+    ulg.error("CentralizedDump: invalid output path");
+    return false;
+  }
+
+  path.append(filename);
+  return DumpFile(path.string(), content);
 }
 } // namespace filesystem
 } // namespace utility
