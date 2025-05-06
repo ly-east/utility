@@ -1,5 +1,6 @@
 #include "Utility/Process/Terminate.h"
 #include "Utility/Process/Launch.h"
+#include "Utility/String/Encoding.h"
 #include "ulog/ulog.h"
 #include <memory>
 
@@ -61,7 +62,9 @@ bool terminateProcessWindows(const utility::string::Str &name) {
   delete[] buffer;
 
   if (exitcode) {
-    ulg.error("taskkill exits with code {} and outputs {}", exitcode, output);
+    // FIXME: which encoding convertion should be applied?
+    ulg.error("taskkill exits with code {} and outputs {}", exitcode,
+              utility::string::ansiToUtf8(output));
     return false;
   }
   return true;
