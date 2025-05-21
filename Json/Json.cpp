@@ -64,8 +64,8 @@ bool getOptionalField(const nlohmann::json &json_l, const std::string &field_l,
   r = optionalFieldJson(json_r, field_r);
 
   if (l.is_null() && r.is_null()) {
-    ulg.error("getOptionalField: neither {} nor {} are existed", field_l,
-              field_r);
+    ulg.warn("getOptionalField: neither {} nor {} are existed", field_l,
+             field_r);
     return false;
   }
 
