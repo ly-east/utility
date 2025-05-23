@@ -1,6 +1,7 @@
 #include "Utility/Json/AriaRpc.h"
 #include "Type/AriaStatus.h"
 #include "Utility/Json/Json.h"
+#include "Utility/Math/CorrectValue.h"
 #include "nlohmann/json.hpp"
 #include "ulog/ulog.h"
 #include <cstdint>
@@ -120,7 +121,11 @@ bool getRpcResponseStatus(const std::string &response,
       uint64_t current =
           std::stoull(result["completedLength"].get<std::string>());
       uint64_t total = std::stoull(result["totalLength"].get<std::string>());
-      status.progress = (double)current / (double)total;
+
+      if (!utility::math::isEqual(total, 0))
+        status.progress = (double)current / (double)total;
+      else
+        status.progress = 0;
 
       status.speed =
           (double)std::stoull(result["downloadSpeed"].get<std::string>()) /
