@@ -55,16 +55,12 @@ bool terminateProcessWindows(const utility::string::Str &name) {
 
   // run
 
-  std::string output;
   int exitcode = utility::process::launchHiddenProgram(
-      program.get(), buffer,
-      [&output](std::string &&str) { output.append(str); });
+      program.get(), buffer, [](std::string &&str) {});
   delete[] buffer;
 
   if (exitcode) {
-    // FIXME: which encoding convertion should be applied?
-    ulg.error("taskkill exits with code {} and outputs {}", exitcode,
-              utility::string::ansiToUtf8(output));
+    ulg.error("taskkill exits with code {}", exitcode);
     return false;
   }
   return true;
