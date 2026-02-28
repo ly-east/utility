@@ -1,6 +1,7 @@
 add_library(Utility SHARED
   Container/PageList.cpp
   Crypto/Hash.cpp
+  EventBus/EventBus.cpp
   FileSystem/DumpFile.cpp
   FileSystem/Filesystem.cpp
   Json/AriaRpc.cpp
