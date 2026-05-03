@@ -2,24 +2,9 @@
 #include "Utility/String/Format.h"
 #include "ulog/ulog.h"
 
-#define USE_MD5_LEGACY 0
-
-#if USE_MD5_LEGACY
-#include "openssl/md5.h"
-#else
 #include "openssl/evp.h"
-#endif // USE_MD5_LEGACY
 
 namespace {
-#if USE_MD5_LEGACY
-static std::string getMD5Legacy(const std::string &str) {
-  unsigned char hash[MD5_DIGEST_LENGTH];
-  MD5((unsigned char *)str.c_str(), str.size(), hash);
-
-  return utility::string::binToHex(hash, MD5_DIGEST_LENGTH);
-}
-#endif // USE_MD5_LEGACY
-
 static std::string getMD5Modern(const std::string &str) {
   unsigned char hash[EVP_MAX_MD_SIZE];
   unsigned int hash_len = 0;
@@ -65,11 +50,7 @@ std::string getMD5(const std::string &str) {
     return std::string();
   }
 
-#if USE_MD5_LEGACY
-  return getMD5Legacy(str);
-#else
   return getMD5Modern(str);
-#endif // USE_MD5_LEGACY
 }
 } // namespace crypto
 } // namespace utility

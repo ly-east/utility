@@ -33,7 +33,7 @@ JsonPtrTy parseJsonString(const std::string &json_str) {
   try {
     JsonPtrTy json =
         std::make_unique<nlohmann::json>(nlohmann::json::parse(json_str));
-    return std::move(json);
+    return json;
   } catch (const std::exception &e) {
     ulg.error("parseJsonString: {}", e.what());
     return nullptr;
@@ -64,8 +64,7 @@ bool getOptionalField(const nlohmann::json &json_l, const std::string &field_l,
   r = optionalFieldJson(json_r, field_r);
 
   if (l.is_null() && r.is_null()) {
-    ulg.warn("getOptionalField: neither {} nor {} are existed", field_l,
-             field_r);
+    ulg.warn("getOptionalField: neither {} nor {} exist", field_l, field_r);
     return false;
   }
 

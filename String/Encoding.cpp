@@ -1,8 +1,13 @@
 #include "Utility/String/Encoding.h"
 #include "ulog/ulog.h"
 #include <codecvt>
+#include <filesystem>
 #include <locale>
 #include <memory>
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 namespace utility {
 namespace string {
@@ -18,8 +23,7 @@ std::string unicodeToUTF8(const std::wstring &wstr) {
   std::string ret;
 
   try {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> wcv;
-    ret = wcv.to_bytes(wstr);
+    ret = std::filesystem::path(wstr).string();
   } catch (const std::exception &e) {
     ulg.error("unicodeToUTF8: {}", e.what());
   }
@@ -31,8 +35,7 @@ std::wstring utf8ToUnicode(const std::string &str) {
   std::wstring ret;
 
   try {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> wcv;
-    ret = wcv.from_bytes(str);
+    ret = std::filesystem::path(str).wstring();
   } catch (const std::exception &e) {
     ulg.error("utf8ToUnicode: {}", e.what());
   }
@@ -42,19 +45,25 @@ std::wstring utf8ToUnicode(const std::string &str) {
 
 std::string unicodeToANSI(const std::wstring &wstr) {
   std::string ret;
-  std::mbstate_t state = {};
-  const wchar_t *src = wstr.data();
 
-  setlocale(LC_CTYPE, "");
-  size_t len = std::wcsrtombs(nullptr, &src, 0, &state);
+  if (wstr.empty())
+    return ret;
 
-  if (static_cast<size_t>(-1) != len) {
-    std::unique_ptr<char[]> buff(new char[len + 1]);
-    len = std::wcsrtombs(buff.get(), &src, len, &state);
+#ifdef _WIN32
+  const int len =
+      WideCharToMultiByte(CP_ACP, 0, wstr.data(), static_cast<int>(wstr.size()),
+                          nullptr, 0, nullptr, nullptr);
 
-    if (static_cast<size_t>(-1) != len)
-      ret.assign(buff.get(), len);
-  }
+  if (len > 0) {
+    std::unique_ptr<char[]> buff = std::make_unique<char[]>(len);
+    WideCharToMultiByte(CP_ACP, 0, wstr.data(), static_cast<int>(wstr.size()),
+                        buff.get(), len, nullptr, nullptr);
+    ret.assign(buff.get(), len);
+  } else
+    ulg.error("unicodeToANSI: WideCharToMultiByte failed, error={}",
+              GetLastError());
+#else
+#endif
 
   return ret;
 }

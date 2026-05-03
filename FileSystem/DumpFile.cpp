@@ -26,9 +26,13 @@ bool CentralizedDump(const std::string &folder, const std::string &filename,
                      const std::string &content) {
   // create folder if it doesn't exist
   auto path = std::filesystem::current_path().append(folder);
-  if (!std::filesystem::exists(path))
-    std::filesystem::create_directory(path);
-  else if (!std::filesystem::is_directory(path)) {
+  if (!std::filesystem::exists(path)) {
+    if (!std::filesystem::create_directory(path)) {
+      ulg.error("CentralizedDump: failed to create directory {}",
+                path.string());
+      return false;
+    }
+  } else if (!std::filesystem::is_directory(path)) {
     ulg.error("CentralizedDump: invalid output path");
     return false;
   }

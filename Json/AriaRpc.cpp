@@ -130,7 +130,14 @@ bool getRpcResponseStatus(const std::string &response,
       status.speed =
           (double)std::stoull(result["downloadSpeed"].get<std::string>()) /
           1024;
-      status.path = result["files"].front()["path"].get<std::string>();
+
+      auto &files = result["files"];
+      if (!files.is_array() || files.empty()) {
+        ulg.error("getRpcResponseStatus: invalid files field");
+        return false;
+      }
+
+      status.path = files.front()["path"].get<std::string>();
 
       std::string task_status{result["status"].get<std::string>()};
       if ("waiting" == task_status)

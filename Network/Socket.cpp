@@ -42,13 +42,10 @@ uint16_t getAvailablePortWindows(uint16_t port_begin, int type) {
       int error = WSAGetLastError();
       if (error == WSAEADDRINUSE) {
         // current port has been occupied
-        closesocket(sock);
         sock = INVALID_SOCKET;
-        continue;
-      } else {
+      } else
         ulg.error("bind() failed with error: {}", error);
-        break;
-      }
+      closesocket(sock);
     } else {
       // an available TCP port is found
       port_available = portnum;
@@ -75,10 +72,10 @@ uint16_t getAvailablePortLinux(uint16_t port_begin, int type) {
     return 0;
   }
 
-  // Bind the socket (let the system choose a port number)
+  // Bind the socket
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = INADDR_ANY;
-  sin.sin_port = 0; // Let the system choose a port number
+  sin.sin_port = htons(port_begin);
   if (bind(sd, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
     // Handle error
     close(sd);

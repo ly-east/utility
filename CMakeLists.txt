@@ -11,7 +11,7 @@ add_library(Utility SHARED
   Network/UserAgent.cpp
   Process/Launch.cpp
   Process/Terminate.cpp
-  Raii/Raii.cpp
+  RAII/Raii.cpp
   String/Encoding.cpp
   String/Format.cpp
   String/Match.cpp

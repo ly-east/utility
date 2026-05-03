@@ -84,8 +84,7 @@ bool select(const std::filesystem::path &path) {
 #if defined(_WIN32)
   const wchar_t select[] = L" /select,";
   const std::u16string filePath{path.u16string()};
-  const size_t buf_size =
-      (wcslen(select) + filePath.size() * 2 + 4) * sizeof(wchar_t);
+  const size_t buf_size = wcslen(select) + filePath.size() * 2 + 4;
 
   try {
     std::unique_ptr<wchar_t[]> buf = std::make_unique<wchar_t[]>(buf_size);

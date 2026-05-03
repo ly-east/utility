@@ -57,7 +57,7 @@ int launchHiddenProgramWindows(CrtFuncTy caller,
 
   CloseHandle(hChildStd_OUT_Wr);
 
-  DWORD buf_size = 128;
+  DWORD buf_size = 256;
   std::unique_ptr<char[]> buf = std::make_unique<char[]>(buf_size);
   char *const buf_ptr = buf.get();
   DWORD byte_read = 0;
@@ -90,7 +90,7 @@ int launchHiddenProgramWindows(CrtFuncTy caller,
 }
 
 #elif defined(__linux__)
-
+// TODO
 #endif
 } // namespace
 
@@ -233,7 +233,7 @@ int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
 
   // read output from pipe
 
-  char buf[128];
+  char buf[256]{};
   ssize_t numRead;
   while ((numRead = read(pipefd[0], buf, sizeof(buf) - 1)) > 0) {
     auto output{utility::string::trim(std::string(buf, numRead))};
