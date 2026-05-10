@@ -137,7 +137,7 @@ bool getRpcResponseStatus(const std::string &response,
         return false;
       }
 
-      status.path = files.front()["path"].get<std::string>();
+      status.path = std::filesystem::u8path(files.front()["path"].get<std::string>());
 
       std::string task_status{result["status"].get<std::string>()};
       if ("waiting" == task_status)

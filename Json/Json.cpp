@@ -8,7 +8,7 @@ namespace utility {
 namespace json {
 JsonPtrTy loadJsonFile(const std::filesystem::path &path) {
   if (!std::filesystem::exists(path)) {
-    ulg.error("loadJsonFile: invalid path {}", path.string());
+    ulg.error("loadJsonFile: invalid path {}", path.u8string());
     return nullptr;
   }
 
