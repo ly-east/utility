@@ -10,6 +10,9 @@ project(Utility VERSION 1.9.8 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+enable_testing()
+option(BUILD_TESTS "Build tests" ON)
+
 if(WIN32)
   if(MSVC)
     add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
@@ -50,6 +53,11 @@ if(NOT TARGET ulog::ulog)
   find_package(ulog REQUIRED)
 endif()
 
+
+# ===================================================================
+# Third-party dependencies
+
+add_subdirectory(third-party)
 
 # ===================================================================
 # Utility dynamic link library
@@ -98,3 +106,10 @@ install(TARGETS Utility EXPORT utilityTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# ===================================================================
+# Tests
+
+if(BUILD_TESTS)
+  add_subdirectory(test)
+endif()
