@@ -1,0 +1,23 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default (Windows, MSVC)",
+      "description": "OpenSSL from bbdown, ulog from installed output",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/output",
+        "OPENSSL_ROOT_DIR": "D:/work/bbdown/third-party/openssl",
+        "CMAKE_PREFIX_PATH": "D:/work/ulog/output"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "configuration": "Release"
+    }
+  ]
+}

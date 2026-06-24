@@ -1,5 +1,5 @@
 #include "Utility/Json/AriaRpc.h"
-#include "Type/AriaStatus.h"
+#include "Utility/Json/AriaStatus.h"
 #include "Utility/Json/Json.h"
 #include "Utility/Math/CorrectValue.h"
 #include "nlohmann/json.hpp"
@@ -114,8 +114,7 @@ bool getRpcResponseGid(const std::string &response, std::string &gid) {
   return parseRpcResponse(response, extractor);
 }
 
-bool getRpcResponseStatus(const std::string &response,
-                          bbdown::StatusResult &status) {
+bool getRpcResponseStatus(const std::string &response, StatusResult &status) {
   auto extractor = [&status](const nlohmann::json &result) -> bool {
     try {
       uint64_t current =
@@ -137,22 +136,23 @@ bool getRpcResponseStatus(const std::string &response,
         return false;
       }
 
-      status.path = std::filesystem::u8path(files.front()["path"].get<std::string>());
+      status.path =
+          std::filesystem::u8path(files.front()["path"].get<std::string>());
 
       std::string task_status{result["status"].get<std::string>()};
       if ("waiting" == task_status)
-        status.status = bbdown::TaskStatus::WAITING;
+        status.status = TaskStatus::WAITING;
       else if ("active" == task_status)
-        status.status = bbdown::TaskStatus::ACTIVE;
+        status.status = TaskStatus::ACTIVE;
       else if ("complete" == task_status)
-        status.status = bbdown::TaskStatus::COMPLETE;
+        status.status = TaskStatus::COMPLETE;
       else if ("paused" == task_status)
-        status.status = bbdown::TaskStatus::PAUSED;
+        status.status = TaskStatus::PAUSED;
       else if ("error" == task_status)
-        status.status = bbdown::TaskStatus::FAILED;
+        status.status = TaskStatus::FAILED;
       else {
         ulg.warn("unknown task status {}", task_status);
-        status.status = bbdown::TaskStatus::UNKNOWN;
+        status.status = TaskStatus::UNKNOWN;
       }
 
     } catch (const std::exception &e) {
