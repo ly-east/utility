@@ -5,7 +5,7 @@
 #if UTILITY_DLL
 #define DllExport __declspec(dllexport)
 #else
-#define DllExport __declspec(dllimport)
+#define DllExport
 #endif // UTILITY_DLL
 #else
 #define DllExport
