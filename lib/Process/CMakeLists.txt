@@ -4,7 +4,7 @@ add_library(UtilityProcess STATIC
 )
 
 target_include_directories(UtilityProcess PUBLIC
-  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )
 
 target_link_libraries(UtilityProcess

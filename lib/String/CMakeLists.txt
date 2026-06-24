@@ -7,7 +7,7 @@ add_library(UtilityString STATIC
 )
 
 target_include_directories(UtilityString PUBLIC
-  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )
 
 target_link_libraries(UtilityString

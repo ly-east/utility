@@ -3,5 +3,5 @@ add_library(UtilityRaii STATIC
 )
 
 target_include_directories(UtilityRaii PUBLIC
-  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )

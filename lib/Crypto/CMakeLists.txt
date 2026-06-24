@@ -3,7 +3,7 @@ add_library(UtilityCrypto STATIC
 )
 
 target_include_directories(UtilityCrypto PUBLIC
-  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )
 
 target_link_libraries(UtilityCrypto

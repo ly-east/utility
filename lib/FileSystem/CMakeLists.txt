@@ -4,7 +4,7 @@ add_library(UtilityFileSystem STATIC
 )
 
 target_include_directories(UtilityFileSystem PUBLIC
-  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )
 
 target_link_libraries(UtilityFileSystem
