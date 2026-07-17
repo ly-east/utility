@@ -2,6 +2,7 @@
 #define UTILITY_STRING_REPLACE_H
 
 #include "Utility/DllExport.h"
+#include <regex>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
@@ -25,6 +26,11 @@ template <typename StrTy> DllExport StrTy replaceSpecialChar(const StrTy &str) {
   }
 
   return dst_str;
+}
+
+DllExport std::string replaceAll(std::string &input, const std::string &from,
+                                 const std::string &to) {
+  return std::regex_replace(input, std::regex(from), to);
 }
 } // namespace string
 } // namespace utility
