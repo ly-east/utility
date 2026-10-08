@@ -15,6 +15,10 @@ DllExport std::string getMatchedString(const std::string &str,
 DllExport std::string getQueryString(const std::string &name,
                                      const std::string &url);
 
+// Returns the value of the Cookie field with the given name from the Cookie
+// string.
+DllExport std::string getCookieString(const std::string &name,
+                                      const std::string &cookie);
 } // namespace string
 } // namespace utility
 

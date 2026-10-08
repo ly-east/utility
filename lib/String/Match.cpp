@@ -45,5 +45,19 @@ std::string getQueryString(const std::string &name, const std::string &url) {
 
   return {};
 }
+
+std::string getCookieString(const std::string &name,
+                            const std::string &cookie) {
+  const std::regex re{R"(\s*([^=;]+?)\s*(?:=\s*([^;]*))?\s*(?:;|$))"};
+
+  for (auto it = std::sregex_iterator(cookie.begin(), cookie.end(), re);
+       it != std::sregex_iterator(); ++it) {
+    const auto &m = *it;
+    if (m[2].matched && m[1].str() == name)
+      return m[2].str();
+  }
+
+  return {};
+}
 } // namespace string
 } // namespace utility
