@@ -22,7 +22,7 @@ std::string binToHex(const unsigned char *data, size_t len) {
 
 std::time_t httpDateToUnixTimestamp(const std::string &date) {
   std::tm tm{};
-  std::istringstream in{s};
+  std::istringstream in{date};
   in.imbue(std::locale::classic()); // month/weekday names are locale-sensitive
   in >> std::get_time(&tm, "%a, %d %b %Y %H:%M:%S");
   if (in.fail())
