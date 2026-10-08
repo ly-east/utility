@@ -19,5 +19,20 @@ std::string binToHex(const unsigned char *data, size_t len) {
 
   return ss.str();
 }
+
+std::time_t httpDateToUnixTimestamp(const std::string &date) {
+  std::tm tm{};
+  std::istringstream in{s};
+  in.imbue(std::locale::classic()); // month/weekday names are locale-sensitive
+  in >> std::get_time(&tm, "%a, %d %b %Y %H:%M:%S");
+  if (in.fail())
+    return -1;
+
+#ifdef _WIN32
+  return _mkgmtime(&tm); // MSVC: interprets tm as UTC
+#else
+  return timegm(&tm); // POSIX equivalent
+#endif
+}
 } // namespace string
 } // namespace utility
