@@ -11,7 +11,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 enable_testing()
-option(BUILD_TESTS "Build tests" ON)
+
+# Tests are built by default for standalone builds; when Utility is embedded
+# as a subproject the parent decides through UTILITY_BUILD_TESTS.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  set(UTILITY_BUILD_TESTS_DEFAULT ON)
+else()
+  set(UTILITY_BUILD_TESTS_DEFAULT OFF)
+endif()
+option(UTILITY_BUILD_TESTS "Build tests" ${UTILITY_BUILD_TESTS_DEFAULT})
 
 if(WIN32)
   if(MSVC)
@@ -126,6 +134,6 @@ install(TARGETS Utility EXPORT utilityTargets
 # ===================================================================
 # Tests
 
-if(BUILD_TESTS)
+if(UTILITY_BUILD_TESTS)
   add_subdirectory(test)
 endif()

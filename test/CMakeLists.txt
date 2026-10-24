@@ -2,7 +2,15 @@
 # Utility test suite
 # ===================================================================
 
-add_executable(tester
+# gtest is provided either by the parent project or by
+# third-party/CMakeLists.txt in standalone builds.
+if(NOT TARGET gtest)
+  message(FATAL_ERROR "gtest target not available")
+endif()
+
+# Named utility_tester to avoid clashing with the parent project's own
+# `tester` target when Utility is built as a subproject.
+add_executable(utility_tester
   UtilityCrypto.cpp
   UtilityEventBus.cpp
   UtilityFilesystem.cpp
@@ -12,15 +20,14 @@ add_executable(tester
   UtilityString.cpp
 )
 
-add_test(NAME tester COMMAND tester)
+add_test(NAME utility_tester COMMAND utility_tester)
 
-target_include_directories(tester
+target_include_directories(utility_tester
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  PUBLIC ${CMAKE_SOURCE_DIR}/third-party/gtest/include
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include
 )
 
-target_link_libraries(tester
+target_link_libraries(utility_tester
   Utility
   gtest
   gtest_main
