@@ -186,7 +186,8 @@ utility::string::Str locateProgram(const utility::string::Str &name) {
 
 #elif defined(__linux__)
 
-int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
+int launchHiddenProgram(const utility::string::Str &path,
+                        utility::string::Char *arg, RdtCbFunc func,
                         std::promise<bool> *p) {
   // TODO: split args?
   int pipefd[2];
@@ -194,14 +195,14 @@ int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
 
   // create pipe
   if (pipe(pipefd) == -1) {
-    ulg.error("launchHiddenProgram: %s", strerror("pipe"));
+    ulg.error("launchHiddenProgram: %s", strerror(errno));
     return 1;
   }
 
   // create subprocess
   pid = fork();
   if (pid == -1) {
-    ulg.error("launchHiddenProgram: %s", strerror("fork"));
+    ulg.error("launchHiddenProgram: %s", strerror(errno));
     return 1;
   }
 
@@ -219,7 +220,7 @@ int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
     execvp(path.c_str(), (char *const *)arg);
 
     // error occurred if it returns
-    ulg.error("launchHiddenProgram: %s", strerror("execvp"));
+    ulg.error("launchHiddenProgram: %s", strerror(errno));
     return 1;
   }
 
@@ -245,7 +246,7 @@ int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
   }
 
   if (numRead == -1)
-    ulg.error("launchHiddenProgram: %s", strerror("read"));
+    ulg.error("launchHiddenProgram: %s", strerror(errno));
 
   // wait for exit status
 
@@ -264,12 +265,15 @@ int launchHiddenProgram(const Str &path, Char *arg, RdtCbFunc func,
   return exit_code;
 }
 
-Str locateProgramLinux(const Str &name) {
+// TODO: the Linux implementation is still a stub — argument splitting and
+// argv handling are not finished yet.
+utility::string::Str locateProgram(const utility::string::Str &name) {
   const char *argv[] = {"which", name.c_str(), nullptr};
   std::string path;
 
   int exit_code = utility::process::launchHiddenProgram(
-      argv[0], argv, [&path](std::string &&output) { path.append(output); });
+      argv[0], const_cast<utility::string::Char *>(name.c_str()),
+      [&path](std::string &&output) { path.append(output); });
 
   if (exit_code) {
     ulg.error("cmd exits with code {}", exit_code);

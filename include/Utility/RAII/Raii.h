@@ -2,6 +2,7 @@
 #define UTILITY_RAII_RAII_H
 
 #include <type_traits>
+#include <utility>
 
 namespace utility {
 namespace raii {
