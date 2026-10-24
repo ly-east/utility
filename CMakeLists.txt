@@ -94,12 +94,27 @@ target_link_libraries(Utility
 # __declspec(dllexport) functions, the linker would skip every static lib,
 # produce an empty DLL, and omit the import library. /WHOLEARCHIVE forces
 # all objects in, so the dllexport markers take effect.
+# GNU ld has the same behavior; --whole-archive is its equivalent.
 if(MSVC)
   foreach(lib IN ITEMS
       UtilityCrypto UtilityEventBus UtilityFileSystem UtilityJson
       UtilityMath UtilityNetwork UtilityProcess UtilityRaii UtilityString)
     target_link_options(Utility PRIVATE "/WHOLEARCHIVE:$<TARGET_LINKER_FILE:${lib}>")
   endforeach()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_link_options(Utility PRIVATE
+    "-Wl,--whole-archive"
+    $<TARGET_FILE:UtilityCrypto>
+    $<TARGET_FILE:UtilityEventBus>
+    $<TARGET_FILE:UtilityFileSystem>
+    $<TARGET_FILE:UtilityJson>
+    $<TARGET_FILE:UtilityMath>
+    $<TARGET_FILE:UtilityNetwork>
+    $<TARGET_FILE:UtilityProcess>
+    $<TARGET_FILE:UtilityRaii>
+    $<TARGET_FILE:UtilityString>
+    "-Wl,--no-whole-archive"
+  )
 endif()
 
 install(TARGETS Utility EXPORT utilityTargets
