@@ -9,6 +9,12 @@
 #if defined(_WIN32)
 #include <Windows.h>
 #include <shellapi.h>
+#elif defined(__linux__)
+#include <cerrno>
+#include <cstring>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 namespace {
@@ -105,6 +111,49 @@ bool select(const std::filesystem::path &path) {
     ulg.error("select: {}", e.what());
     return false;
   }
+
+  return true;
+#elif defined(__linux__)
+  // xdg-open cannot highlight a file inside a directory, so open the
+  // containing directory instead. Double-fork keeps the call asynchronous
+  // like ShellExecuteW and leaves no zombie process behind.
+  std::filesystem::path dir{path};
+  if (!std::filesystem::is_directory(dir))
+    dir = dir.parent_path();
+  if (dir.empty())
+    dir = ".";
+
+  const std::string target{dir.string()};
+
+  const pid_t pid = fork();
+  if (pid == -1) {
+    ulg.error("select: fork failed ({})", strerror(errno));
+    return false;
+  }
+
+  if (pid == 0) {
+    const pid_t child = fork();
+    if (child == -1)
+      _exit(1);
+    if (child > 0)
+      _exit(0);
+
+    // grandchild: detach from the terminal and run xdg-open
+    const int fd = open("/dev/null", O_RDWR);
+    if (fd != -1) {
+      dup2(fd, STDIN_FILENO);
+      dup2(fd, STDOUT_FILENO);
+      dup2(fd, STDERR_FILENO);
+      if (fd > STDERR_FILENO)
+        close(fd);
+    }
+
+    execlp("xdg-open", "xdg-open", target.c_str(), (char *)nullptr);
+    _exit(127);
+  }
+
+  int status = 0;
+  waitpid(pid, &status, 0); // the intermediate child exits immediately
 
   return true;
 #else
