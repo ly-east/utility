@@ -4,6 +4,17 @@
 #include "ulog/ulog.h"
 #include <memory>
 
+#if defined(__linux__)
+#include <cerrno>
+#include <cctype>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <signal.h>
+#include <unistd.h>
+#endif
+
 namespace {
 #if defined(_WIN32)
 bool terminateProcessWindows(const utility::string::Str &name) {
@@ -62,7 +73,58 @@ bool terminateProcessWindows(const utility::string::Str &name) {
   return true;
 }
 #elif defined(__linux__)
-bool terminateProcessLinux(const utility::string::Str &name) { return false; }
+// taskkill /F /IM semantics: force-kill every process whose image name equals
+// `name`. Candidates are resolved through /proc at kill time, so a stale or
+// reused pid can never be targeted.
+bool terminateProcessLinux(const utility::string::Str &name) {
+  namespace fs = std::filesystem;
+
+  std::error_code ec;
+  fs::directory_iterator it{"/proc", ec};
+  const fs::directory_iterator end;
+  if (ec) {
+    ulg.error("terminateProcessLinux: cannot open /proc ({})", ec.message());
+    return false;
+  }
+
+  bool killed = false;
+  const pid_t self = getpid();
+
+  for (; it != end; it.increment(ec)) {
+    const std::string entry{it->path().filename().string()};
+    if (entry.empty() || !std::isdigit((unsigned char)entry.front()))
+      continue;
+
+    const pid_t pid = (pid_t)std::strtol(entry.c_str(), nullptr, 10);
+    if (pid <= 0 || pid == self)
+      continue;
+
+    // match the image name by the executable basename, falling back to
+    // /proc/<pid>/comm (which the kernel truncates to 15 characters)
+    std::error_code exe_ec;
+    const fs::path exe{fs::read_symlink(it->path() / "exe", exe_ec)};
+    if (exe_ec || exe.filename() != name) {
+      std::ifstream comm_file{it->path() / "comm"};
+      std::string comm;
+      std::getline(comm_file, comm);
+      if (comm != name)
+        continue;
+    }
+
+    if (kill(pid, SIGKILL) == 0) {
+      ulg.debug("terminateProcessLinux: killed {} ({})", name, pid);
+      killed = true;
+    } else if (ESRCH != errno) {
+      ulg.error("terminateProcessLinux: kill {} failed ({})", pid,
+                strerror(errno));
+    }
+  }
+
+  if (!killed)
+    ulg.warn("terminateProcessLinux: no process named {} found", name);
+
+  return killed;
+}
 #endif
 } // namespace
 
