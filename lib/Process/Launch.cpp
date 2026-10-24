@@ -14,9 +14,13 @@
 // Type of CreateProcess caller function
 using CrtFuncTy = std::function<bool(HANDLE, PROCESS_INFORMATION &)>;
 #elif defined(__linux__)
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <vector>
 #endif
 
 namespace {
@@ -90,7 +94,35 @@ int launchHiddenProgramWindows(CrtFuncTy caller,
 }
 
 #elif defined(__linux__)
-// TODO
+// Split a command line into an argument vector. Double quotes group
+// characters containing whitespace (the quoting used by callers such as
+// AriaDownloader and Converter) and are removed from the resulting tokens.
+std::vector<std::string> splitCommandLine(const utility::string::Str &cmdline) {
+  std::vector<std::string> tokens;
+  std::string token;
+  bool in_quotes = false, has_token = false;
+
+  for (const char ch : cmdline) {
+    if ('"' == ch) {
+      in_quotes = !in_quotes;
+      has_token = true;
+    } else if (!in_quotes && (' ' == ch || '\t' == ch)) {
+      if (has_token) {
+        tokens.emplace_back(std::move(token));
+        token.clear();
+        has_token = false;
+      }
+    } else {
+      token.push_back(ch);
+      has_token = true;
+    }
+  }
+
+  if (has_token)
+    tokens.emplace_back(std::move(token));
+
+  return tokens;
+}
 #endif
 } // namespace
 
@@ -189,20 +221,38 @@ utility::string::Str locateProgram(const utility::string::Str &name) {
 int launchHiddenProgram(const utility::string::Str &path,
                         utility::string::Char *arg, RdtCbFunc func,
                         std::promise<bool> *p) {
-  // TODO: split args?
-  int pipefd[2];
-  pid_t pid = 0;
+  // `arg` is a complete command line equivalent to lpCommandLine of
+  // CreateProcess: its first token is passed as argv[0] of the child.
+  std::vector<std::string> tokens;
+  if (arg && *arg)
+    tokens = splitCommandLine(arg);
+
+  std::vector<char *> argv;
+  argv.reserve(tokens.size() + 2);
+  if (tokens.empty())
+    argv.push_back(const_cast<char *>(path.c_str()));
+  else
+    for (auto &token : tokens)
+      argv.push_back(token.data());
+  argv.push_back(nullptr);
 
   // create pipe
+  int pipefd[2];
   if (pipe(pipefd) == -1) {
-    ulg.error("launchHiddenProgram: %s", strerror(errno));
+    ulg.error("launchHiddenProgram: pipe failed ({})", strerror(errno));
+    if (p)
+      p->set_value(false);
     return 1;
   }
 
   // create subprocess
-  pid = fork();
+  const pid_t pid = fork();
   if (pid == -1) {
-    ulg.error("launchHiddenProgram: %s", strerror(errno));
+    ulg.error("launchHiddenProgram: fork failed ({})", strerror(errno));
+    close(pipefd[0]);
+    close(pipefd[1]);
+    if (p)
+      p->set_value(false);
     return 1;
   }
 
@@ -212,16 +262,21 @@ int launchHiddenProgram(const utility::string::Str &path,
 
     dup2(pipefd[1], STDOUT_FILENO); // redirect STDOUT to pipefd[0]
     dup2(pipefd[1], STDERR_FILENO);
+    close(pipefd[1]);
 
-    const char *args[] =
-        //  {"ls", "-l", "-h", "-a", nullptr};
-        {"./which", "ffmpeg", nullptr};
+    execvp(path.c_str(), argv.data());
 
-    execvp(path.c_str(), (char *const *)arg);
-
-    // error occurred if it returns
-    ulg.error("launchHiddenProgram: %s", strerror(errno));
-    return 1;
+    // error occurred if it returns: report through the pipe and exit
+    char msg[512];
+    const int len = snprintf(msg, sizeof(msg), "execvp(%s) failed: %s",
+                             path.c_str(), strerror(errno));
+    if (len > 0) {
+      const size_t size =
+          (size_t)len < sizeof(msg) ? (size_t)len : sizeof(msg);
+      ssize_t unused = write(STDERR_FILENO, msg, size);
+      (void)unused;
+    }
+    _exit(127);
   }
 
   // parent process
@@ -246,7 +301,7 @@ int launchHiddenProgram(const utility::string::Str &path,
   }
 
   if (numRead == -1)
-    ulg.error("launchHiddenProgram: %s", strerror(errno));
+    ulg.error("launchHiddenProgram: read failed ({})", strerror(errno));
 
   // wait for exit status
 
@@ -257,7 +312,7 @@ int launchHiddenProgram(const utility::string::Str &path,
     exit_code = WEXITSTATUS(status); // normal exit
   else if (WIFSIGNALED(status)) {
     exit_code = WTERMSIG(status);
-    ulg.error("launchHiddenProgram: child killed by signal. %d", exit_code);
+    ulg.error("launchHiddenProgram: child killed by signal {}", exit_code);
   }
 
   close(pipefd[0]);
@@ -265,18 +320,18 @@ int launchHiddenProgram(const utility::string::Str &path,
   return exit_code;
 }
 
-// TODO: the Linux implementation is still a stub — argument splitting and
-// argv handling are not finished yet.
 utility::string::Str locateProgram(const utility::string::Str &name) {
-  const char *argv[] = {"which", name.c_str(), nullptr};
-  std::string path;
+  // ask `which` for the location of the program in PATH
+  utility::string::Str cmdline{"which "};
+  cmdline.append(name);
 
+  std::string path;
   int exit_code = utility::process::launchHiddenProgram(
-      argv[0], const_cast<utility::string::Char *>(name.c_str()),
+      "which", cmdline.data(),
       [&path](std::string &&output) { path.append(output); });
 
   if (exit_code) {
-    ulg.error("cmd exits with code {}", exit_code);
+    ulg.error("which exits with code {}", exit_code);
     path.clear();
   }
 
