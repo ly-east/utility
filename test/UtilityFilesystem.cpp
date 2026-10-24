@@ -6,6 +6,12 @@
 #include <fstream>
 #include <string>
 
+#if defined(__linux__)
+#include <chrono>
+#include <cstdlib>
+#include <thread>
+#endif
+
 void UtilityFilesystem::SetUpTestSuite() {
   ulog::Logger::setFileLogger("tester.log");
 }
@@ -165,4 +171,71 @@ TEST_F(UtilityFilesystem, CentralizedDump) {
   file.close();
 
   std::filesystem::remove_all(folder);
+}
+
+// ============================================================================
+// select tests
+// ============================================================================
+
+TEST_F(UtilityFilesystem, Select_NonExistingPath) {
+  EXPECT_FALSE(utility::filesystem::select("nonexistent_path_xyz_123"));
+}
+
+TEST_F(UtilityFilesystem, Select_OpenContainingDirectory) {
+#if defined(__linux__)
+  // select() is asynchronous and ends up calling xdg-open; place a fake
+  // xdg-open at the front of PATH which records the argument it receives
+  namespace fs = std::filesystem;
+
+  const fs::path base{fs::temp_directory_path() / "utility_select_test"};
+  const fs::path fakebin{base / "bin"};
+  const fs::path dir{base / "dir"};
+  const fs::path log{base / "args.txt"};
+
+  fs::remove_all(base);
+  fs::create_directories(fakebin);
+  fs::create_directories(dir);
+  { std::ofstream f{dir / "some file.txt"}; f << "x"; }
+  {
+    std::ofstream f{fakebin / "xdg-open"};
+    f << "#!/bin/sh\nprintf '%s' \"$1\" > \"" << log.string() << "\"\n";
+  }
+  fs::permissions(fakebin / "xdg-open", fs::perms::owner_all,
+                  fs::perm_options::add);
+
+  const char *const old_path = getenv("PATH");
+  const std::string new_path{fakebin.string() + ":" +
+                             (old_path ? old_path : "")};
+  setenv("PATH", new_path.c_str(), 1);
+
+  auto recorded_args = [&log] {
+    // select() returns before xdg-open runs; poll for the record
+    for (int i = 0; i < 50; ++i) {
+      if (fs::exists(log)) {
+        std::ifstream in{log};
+        std::string args;
+        std::getline(in, args);
+        if (!args.empty())
+          return args;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    return std::string{};
+  };
+
+  // a file: its containing directory is opened
+  EXPECT_TRUE(utility::filesystem::select(dir / "some file.txt"));
+  EXPECT_EQ(recorded_args(), dir.string());
+
+  // a directory: opened directly
+  fs::remove(log);
+  EXPECT_TRUE(utility::filesystem::select(dir));
+  EXPECT_EQ(recorded_args(), dir.string());
+
+  if (old_path)
+    setenv("PATH", old_path, 1);
+  fs::remove_all(base);
+#else
+  GTEST_SKIP() << "requires a fake xdg-open on PATH";
+#endif
 }
