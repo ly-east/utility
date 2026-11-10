@@ -19,6 +19,7 @@ using CrtFuncTy = std::function<bool(HANDLE, PROCESS_INFORMATION &)>;
 #include <cstring>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <system_error>
 #include <unistd.h>
 #include <vector>
 #endif
@@ -128,8 +129,43 @@ std::vector<std::string> splitCommandLine(const utility::string::Str &cmdline) {
 
 namespace utility {
 namespace process {
+utility::string::Str getSelfDirectory() {
+#if defined(_WIN32)
+  std::wstring buf(MAX_PATH, L'\0');
+
+  while (true) {
+    const DWORD len = GetModuleFileNameW(nullptr, buf.data(),
+                                         static_cast<DWORD>(buf.size()));
+    if (0 == len) {
+      ulg.error("getSelfDirectory: GetModuleFileName failed ({})",
+                GetLastError());
+      return {};
+    }
+    // the buffer was too small and the path truncated; grow and retry
+    if (len >= buf.size()) {
+      buf.resize(buf.size() * 2);
+      continue;
+    }
+
+    buf.resize(len);
+    break;
+  }
+
+  return std::filesystem::path{buf}.parent_path().wstring();
+#elif defined(__linux__)
+  std::error_code ec;
+  const auto exe = std::filesystem::read_symlink("/proc/self/exe", ec);
+  if (ec) {
+    ulg.error("getSelfDirectory: readlink /proc/self/exe failed: {}",
+              ec.message());
+    return {};
+  }
+  return exe.parent_path().string();
+#endif
+}
+
 utility::string::Str getExecutableFilePath(const utility::string::Str &name) {
-  std::filesystem::path p{std::filesystem::current_path()};
+  std::filesystem::path p{getSelfDirectory()};
 
   try {
     p.append(name);

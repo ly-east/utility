@@ -4,10 +4,13 @@
 #include "Utility/String/Encoding.h"
 #include "Utility/String/Type.h"
 #include "ulog/ulog.h"
+#include <filesystem>
 #include <string>
 #include <vector>
 
-#if defined(__linux__)
+#if defined(_WIN32)
+#include <Windows.h>
+#elif defined(__linux__)
 #include <chrono>
 #include <future>
 #include <sys/prctl.h>
@@ -57,6 +60,21 @@ TEST_F(UtilityProcess, getExecutableFilePath) {
   EXPECT_TRUE(
       utility::process::getExecutableFilePath(TXT("nonexistent_program_xyz"))
           .empty());
+}
+
+TEST_F(UtilityProcess, getSelfDirectory) {
+  const auto dir = utility::process::getSelfDirectory();
+  ASSERT_FALSE(dir.empty());
+
+  // the directory must contain this very test executable
+#if defined(_WIN32)
+  wchar_t buf[MAX_PATH];
+  ASSERT_NE(0u, GetModuleFileNameW(nullptr, buf, MAX_PATH));
+  const std::filesystem::path self{buf};
+#elif defined(__linux__)
+  const std::filesystem::path self{std::filesystem::canonical("/proc/self/exe")};
+#endif
+  EXPECT_EQ(std::filesystem::path{dir}, self.parent_path());
 }
 
 TEST_F(UtilityProcess, killNonExistedProcess) {

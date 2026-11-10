@@ -14,8 +14,12 @@ using RdtCbFunc = std::function<void(std::string &&output)>;
 
 // accepts wchar, wstring only(which indicates UTF-16)
 
-// Get full path of specific program from current path or environment variable
-// PATH.
+// Directory containing the running executable, without a trailing separator.
+// @return returns empty string on failure.
+DllExport utility::string::Str getSelfDirectory();
+
+// Get full path of specific program, searching the executable's own directory
+// first and then the environment variable PATH.
 // @return returns empty string if required program cannot be found.
 DllExport utility::string::Str
 getExecutableFilePath(const utility::string::Str &name);
