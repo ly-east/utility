@@ -93,6 +93,7 @@ target_link_libraries(Utility
   UtilityProcess
   UtilityRaii
   UtilityString
+  UtilityTime
   OpenSSL::Crypto
   ulog::ulog
 )
